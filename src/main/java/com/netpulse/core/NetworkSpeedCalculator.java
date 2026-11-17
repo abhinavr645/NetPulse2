@@ -7,6 +7,7 @@ import com.netpulse.model.CounterReading;
 import com.netpulse.model.NetworkSpeed;
 import com.netpulse.model.SpeedMeasurement;
 import com.netpulse.model.SpeedMeasurement.Status;
+import com.netpulse.model.TrafficDelta;
 
 /** Stateful baseline calculator; owned by one sampling thread. */
 public final class NetworkSpeedCalculator {
@@ -48,14 +49,17 @@ public final class NetworkSpeedCalculator {
         }
 
         double seconds = elapsedNanos / 1_000_000_000.0;
-        double download = (current.receivedBytes() - previous.receivedBytes()) / seconds;
-        double upload = (current.transmittedBytes() - previous.transmittedBytes()) / seconds;
+        TrafficDelta delta = new TrafficDelta(current.receivedBytes() - previous.receivedBytes(),
+                current.transmittedBytes() - previous.transmittedBytes(),
+                previous.sampledAtNanos(), current.sampledAtNanos());
+        double download = delta.downloadedBytes() / seconds;
+        double upload = delta.uploadedBytes() / seconds;
         baseline(adapter, current);
         if (!Double.isFinite(download) || download < 0 || !Double.isFinite(upload) || upload < 0) {
             reset();
             return SpeedMeasurement.unavailable(Status.INVALID_COUNTERS);
         }
-        return SpeedMeasurement.available(new NetworkSpeed(download, upload));
+        return SpeedMeasurement.available(new NetworkSpeed(download, upload), delta);
     }
 
     public void reset() {

@@ -3,6 +3,7 @@ package com.netpulse.monitor;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -12,16 +13,21 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Delayed;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netpulse.model.AdapterInfo;
 import com.netpulse.model.AdapterSample;
 import com.netpulse.model.MonitoringSnapshot;
+import com.netpulse.model.MonitoringDataSnapshot;
+import com.netpulse.model.SessionTrafficTotals;
+import com.netpulse.core.RollingTrafficWindow;
 import com.netpulse.model.MonitoringSnapshot.ConnectionStatus;
 import com.netpulse.model.SpeedMeasurement.Status;
 import com.netpulse.support.AdapterFixture;
@@ -90,6 +96,9 @@ class NetworkMonitorServiceTest {
             assertEquals(Status.BASELINE, service.latestSnapshot().measurement().status());
             fire(scheduler, nanos, 4);
             assertEquals(Status.AVAILABLE, service.latestSnapshot().measurement().status());
+            assertEquals(BigInteger.valueOf(2_000_000), service.sessionTotals().downloadedBytes());
+            assertEquals(5, service.trafficHistory().size());
+            assertEquals(Status.READ_FAILED, service.trafficHistory().get(2).measurement().status());
             assertEquals(5, events.size());
         }
     }
@@ -137,6 +146,9 @@ class NetworkMonitorServiceTest {
             assertEquals(Status.BASELINE, service.latestSnapshot().measurement().status());
             fire(scheduler, nanos, 4);
             assertEquals(Status.AVAILABLE, service.latestSnapshot().measurement().status());
+            assertEquals(BigInteger.valueOf(2_000_000), service.sessionTotals().downloadedBytes());
+            assertEquals(5, service.trafficHistory().size());
+            assertEquals(Status.NO_ADAPTER, service.trafficHistory().get(2).measurement().status());
         }
     }
 
@@ -290,6 +302,209 @@ class NetworkMonitorServiceTest {
             release.countDown();
             executor.shutdownNow();
             assertTrue(executor.awaitTermination(2, TimeUnit.SECONDS));
+        }
+    }
+
+    @Test
+    void publishesCoherentTotalsAndHistoryExactlyOnceBeforeNotifyingListeners() {
+        ManualScheduler scheduler = new ManualScheduler();
+        AtomicLong nanos = new AtomicLong();
+        AdapterFixture adapter = new AdapterFixture(1);
+        AtomicReference<NetworkMonitorService> reference = new AtomicReference<>();
+        List<MonitoringDataSnapshot> published = new ArrayList<>();
+        try (NetworkMonitorService service = new NetworkMonitorService(
+                () -> List.of(adapter.reading(nanos.get() == 0 ? 100 : 201,
+                        nanos.get() == 0 ? 200 : 252, nanos.get())),
+                snapshot -> {
+                    var data = reference.get().dataSnapshot();
+                    assertEquals(snapshot, data.latestAccepted().orElseThrow());
+                    assertEquals(snapshot.sequence(), data.history().getLast().sequence());
+                    published.add(data);
+                }, scheduler, Duration.ofSeconds(1), nanos::get, WALL_CLOCK)) {
+            reference.set(service);
+            assertTrue(service.dataSnapshot().latestAccepted().isEmpty());
+            assertTrue(service.trafficHistory().isEmpty());
+            assertEquals(SessionTrafficTotals.ZERO, service.sessionTotals());
+            service.start();
+            for (int second = 0; second <= 2; second++) {
+                fire(scheduler, nanos, second);
+            }
+            for (int read = 0; read < 100; read++) {
+                service.latestSnapshot();
+                service.dataSnapshot();
+                service.trafficHistory();
+                service.sessionTotals();
+            }
+            assertEquals(3, published.size());
+            assertEquals(List.of(1L, 2L, 3L), published.stream()
+                    .map(data -> data.latestAccepted().orElseThrow().sequence()).toList());
+            assertEquals(BigInteger.valueOf(101), service.sessionTotals().downloadedBytes());
+            assertEquals(BigInteger.valueOf(52), service.sessionTotals().uploadedBytes());
+            assertEquals(3, service.trafficHistory().size());
+            assertEquals(0, service.trafficHistory().getLast().measurement().speed().orElseThrow().downloadMbps());
+            assertEquals(1, published.getFirst().history().size());
+            assertThrows(UnsupportedOperationException.class, () -> service.trafficHistory().clear());
+        }
+    }
+
+    @Test
+    void resetsSwitchesAndFailuresCreateGapsWithoutCountingMissedTraffic() {
+        ManualScheduler scheduler = new ManualScheduler();
+        AtomicLong nanos = new AtomicLong();
+        AtomicInteger cycle = new AtomicInteger();
+        AdapterFixture first = new AdapterFixture(1);
+        AdapterFixture second = new AdapterFixture(2);
+        NetworkStatsProvider provider = () -> {
+            AdapterSample reading = switch (cycle.getAndIncrement()) {
+                case 0 -> first.reading(100, 200, nanos.get());
+                case 1, 2 -> first.reading(201, 252, nanos.get());
+                case 3 -> first.reading(5, 6, nanos.get());
+                case 4 -> first.reading(6, 8, nanos.get());
+                case 5 -> second.reading(1_000_000, 2_000_000, nanos.get());
+                case 6 -> second.reading(1_000_007, 2_000_009, nanos.get());
+                case 7 -> throw new IOException("synthetic read failure");
+                case 8 -> second.reading(1_000_100, 2_000_100, nanos.get());
+                case 9 -> second.reading(1_000_110, 2_000_111, nanos.get());
+                default -> throw new AssertionError("Unexpected extra poll");
+            };
+            return List.of(reading);
+        };
+        try (NetworkMonitorService service = service(provider, new ArrayList<>(), scheduler, nanos)) {
+            service.start();
+            for (int secondNumber = 0; secondNumber < 10; secondNumber++) {
+                fire(scheduler, nanos, secondNumber);
+            }
+            MonitoringDataSnapshot data = service.dataSnapshot();
+            assertEquals(BigInteger.valueOf(119), data.sessionTotals().downloadedBytes());
+            assertEquals(BigInteger.valueOf(74), data.sessionTotals().uploadedBytes());
+            assertEquals(10, data.latestAccepted().orElseThrow().sequence());
+            assertEquals(10, data.history().size());
+            assertEquals(Status.COUNTER_RESET, data.history().get(3).measurement().status());
+            assertEquals(Status.ADAPTER_CHANGED, data.history().get(5).measurement().status());
+            assertTrue(data.history().get(5).adapterBoundary());
+            assertEquals(Status.READ_FAILED, data.history().get(7).measurement().status());
+            assertEquals(Status.BASELINE, data.history().get(8).measurement().status());
+        }
+    }
+
+    @Test
+    void replayedProviderCountersBecomeAGapInsteadOfAnotherByteDelta() {
+        ManualScheduler scheduler = new ManualScheduler();
+        AtomicLong nanos = new AtomicLong();
+        AdapterFixture adapter = new AdapterFixture(1);
+        try (NetworkMonitorService service = service(() -> List.of(
+                adapter.reading(nanos.get() == 0 ? 0 : 100, 0, Math.min(nanos.get(), 1_000_000_000L))),
+                new ArrayList<>(), scheduler, nanos)) {
+            service.start();
+            fire(scheduler, nanos, 0);
+            fire(scheduler, nanos, 1);
+            fire(scheduler, nanos, 2);
+            assertEquals(BigInteger.valueOf(100), service.sessionTotals().downloadedBytes());
+            assertEquals(3, service.trafficHistory().size());
+            assertEquals(Status.INVALID_TIME, service.trafficHistory().getLast().measurement().status());
+            assertTrue(service.trafficHistory().getLast().measurement().trafficDelta().isEmpty());
+        }
+    }
+
+    @Test
+    void cancelledLateReadsCannotChangeAlreadyAcceptedTrafficData() throws Exception {
+        ManualScheduler scheduler = new ManualScheduler();
+        AtomicLong nanos = new AtomicLong();
+        AtomicInteger cycles = new AtomicInteger();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AdapterFixture adapter = new AdapterFixture(1);
+        NetworkMonitorService service = service(() -> {
+            int cycle = cycles.getAndIncrement();
+            if (cycle == 2) {
+                entered.countDown();
+                await(release);
+            }
+            return List.of(adapter.reading(cycle == 2 ? Long.MAX_VALUE : cycle * 100L, 0, nanos.get()));
+        }, new ArrayList<>(), scheduler, nanos);
+        service.start();
+        fire(scheduler, nanos, 0);
+        fire(scheduler, nanos, 1);
+        nanos.set(2_000_000_000L);
+        MonitoringDataSnapshot before = service.dataSnapshot();
+        Thread worker = Thread.ofPlatform().daemon().start(scheduler::fire);
+        try {
+            assertTrue(entered.await(2, TimeUnit.SECONDS));
+            service.stop();
+            release.countDown();
+            worker.join(2000);
+            assertFalse(worker.isAlive());
+            assertEquals(before, service.dataSnapshot());
+            assertEquals(2, service.dataSnapshot().latestAccepted().orElseThrow().sequence());
+            assertEquals(BigInteger.valueOf(100), service.sessionTotals().downloadedBytes());
+        } finally {
+            release.countDown();
+            service.stop();
+            worker.join(2000);
+        }
+    }
+
+    @Test
+    void historyExpiresWhileStoppedWithoutResettingSessionTotalsOrReprocessingTheLastSample() {
+        ManualScheduler scheduler = new ManualScheduler();
+        AtomicLong nanos = new AtomicLong();
+        AdapterFixture adapter = new AdapterFixture(1);
+        try (NetworkMonitorService service = service(
+                () -> List.of(adapter.reading(nanos.get() / 10_000_000L, 0, nanos.get())),
+                new ArrayList<>(), scheduler, nanos)) {
+            service.start();
+            fire(scheduler, nanos, 0);
+            fire(scheduler, nanos, 1);
+            service.stop();
+            nanos.set(61_000_000_000L);
+            assertEquals(1, service.trafficHistory().size());
+            nanos.incrementAndGet();
+            assertTrue(service.trafficHistory().isEmpty());
+            assertEquals(2, service.dataSnapshot().latestAccepted().orElseThrow().sequence());
+            assertEquals(BigInteger.valueOf(100), service.sessionTotals().downloadedBytes());
+        }
+    }
+
+    @Test
+    void concurrentReadersSeeOnlyWholeAcceptedDataSnapshots() throws Exception {
+        ManualScheduler scheduler = new ManualScheduler();
+        AtomicLong nanos = new AtomicLong();
+        AtomicInteger reads = new AtomicInteger();
+        AtomicBoolean finished = new AtomicBoolean();
+        AdapterFixture adapter = new AdapterFixture(1);
+        try (NetworkMonitorService service = service(() -> {
+            int count = reads.incrementAndGet();
+            return List.of(adapter.reading(count, count * 2L, nanos.get()));
+        }, new ArrayList<>(), scheduler, nanos);
+             var readers = Executors.newSingleThreadExecutor()) {
+            service.start();
+            CountDownLatch ready = new CountDownLatch(1);
+            var checking = readers.submit(() -> {
+                ready.countDown();
+                int observations = 0;
+                while (!finished.get() || observations < 1000) {
+                    MonitoringDataSnapshot data = service.dataSnapshot();
+                    if (data.latestAccepted().isPresent()) {
+                        long sequence = data.latestAccepted().orElseThrow().sequence();
+                        assertEquals(BigInteger.valueOf(sequence - 1), data.sessionTotals().downloadedBytes());
+                        assertEquals(BigInteger.valueOf((sequence - 1) * 2), data.sessionTotals().uploadedBytes());
+                        assertEquals(sequence, data.history().getLast().sequence());
+                        assertTrue(data.history().size() <= RollingTrafficWindow.MAX_SAMPLES);
+                    }
+                    observations++;
+                }
+            });
+            try {
+                assertTrue(ready.await(2, TimeUnit.SECONDS));
+                for (int cycle = 0; cycle < 1000; cycle++) {
+                    nanos.set(cycle * 1_000_000L);
+                    scheduler.fire();
+                }
+            } finally {
+                finished.set(true);
+            }
+            checking.get(5, TimeUnit.SECONDS);
+            assertEquals(BigInteger.valueOf(999), service.sessionTotals().downloadedBytes());
         }
     }
 

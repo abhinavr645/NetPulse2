@@ -17,6 +17,18 @@ class NetworkSpeedCalculatorTest {
     private final AdapterInfo.Id adapter = new AdapterFixture(1).build().id();
 
     @Test
+    void publishesExactCounterDeltasAlongsideTheUnroundedInterval() {
+        long largeCounter = 9_007_199_254_740_993L;
+        calculate(17, 23, 0);
+        var measurement = calculate(largeCounter + 17, 124, 1_500_000_000L);
+        var delta = measurement.trafficDelta().orElseThrow();
+        assertEquals(largeCounter, delta.downloadedBytes());
+        assertEquals(101, delta.uploadedBytes());
+        assertEquals(0, delta.startedAtNanos());
+        assertEquals(1_500_000_000L, delta.endedAtNanos());
+    }
+
+    @Test
     void firstReadingIsABaselineRatherThanASpeed() {
         unavailable(calculate(9_000_000, 8_000_000, 0), Status.BASELINE);
     }
@@ -125,5 +137,6 @@ class NetworkSpeedCalculatorTest {
     private static void unavailable(SpeedMeasurement measurement, Status reason) {
         assertEquals(reason, measurement.status());
         assertTrue(measurement.speed().isEmpty());
+        assertTrue(measurement.trafficDelta().isEmpty());
     }
 }

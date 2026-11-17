@@ -1,8 +1,9 @@
 # NetPulse
 
 A fresh JavaFX desktop application for a college project. This implementation
-currently contains **Phases 1 and 2**: the Maven/JavaFX foundation and an independent
-OSHI network monitoring engine. No previous NetPulse source was inspected or reused.
+currently contains **Phases 1–3**: the Maven/JavaFX foundation, an independent OSHI
+monitoring engine, exact session totals, and rolling traffic data. No previous
+NetPulse source was inspected or reused.
 
 ## Requirements
 
@@ -34,8 +35,8 @@ process then exit naturally. The status describes application startup, not netwo
 connectivity.
 
 The application now starts one background network-monitor worker after displaying
-the window. No speeds are displayed in this phase: the approved dashboard shell
-is preserved. Closing the window calls the monitor's nonblocking `stop()` method.
+the window. No speeds or totals are displayed yet: the approved dashboard shell
+is preserved while the engine maintains the data. Closing the window calls the monitor's nonblocking `stop()` method.
 Startup failures propagate to the launcher instead of being hidden.
 
 `target/netpulse-1.0.0-SNAPSHOT.jar` is the ordinary Maven application JAR, not a
@@ -78,12 +79,14 @@ src/main/java/com/netpulse/
   core/
     AdapterSelector.java
     NetworkSpeedCalculator.java
+    SessionTrafficTracker.java
+    RollingTrafficWindow.java
   monitor/
     NetworkStatsProvider.java
     OshiNetworkStatsProvider.java
     NetworkMonitorService.java
   speedtest/                Reserved official CLI integration
-  model/                    Immutable metadata, counters, speeds, and snapshots
+  model/                    Immutable metadata, measurements, totals, and history
   ui/
     NetPulseApplication.java
     FxDashboardController.java
@@ -93,7 +96,7 @@ src/main/resources/
   css/styles.css
 src/test/java/com/netpulse/
   DependencyCompatibilityTest.java
-  core/                     Synthetic calculation and selection tests
+  core/                     Synthetic calculation, selection, totals, and window tests
   monitor/                  Synthetic service tests and manual OSHI check
   support/                  Synthetic adapter fixtures
   ui/DashboardResourcesTest.java
@@ -157,11 +160,80 @@ on a native OSHI call or subscriber on the JavaFX thread. An already entered
 callback may finish, and a native call that ignores interruption may finish later;
 the worker is a daemon and cannot keep the application alive.
 
-There are no gauges, charts, rolling graph buffers, session totals, Ookla processes,
-result parsers, persistent traffic history, databases, or servers in Phase 2.
+Phase 3 extends this engine with session totals and rolling data as described
+below. Gauges, charts, Ookla processes, result parsers, persistent traffic history,
+databases, and servers remain unimplemented.
 
 The Windows metadata values follow Microsoft's
 [MIB_IF_ROW2 documentation](https://learn.microsoft.com/en-us/windows/win32/api/netioapi/ns-netioapi-mib_if_row2).
+
+## Phase 3 traffic data
+
+`NetworkSpeedCalculator` now includes an immutable `TrafficDelta` alongside each
+available speed. It contains exact downloaded/uploaded byte differences and the
+monotonic start/end of the measured interval. `SpeedMeasurement.available` requires
+both the speed and this delta; unavailable measurements contain neither. Totals
+are never reconstructed from rates, elapsed display time, or rounded Mbps.
+
+`SessionTrafficTracker` adds only these valid deltas. `SessionTrafficTotals` exposes
+downloaded/uploaded bytes as `BigInteger`, preserving exact values even beyond
+`long` capacity. Valid idle measurements add zero. Baselines, resets, switches,
+disconnections, invalid data, and failed reads add nothing. Valid intervals on a
+replacement adapter continue the same session; missed intervals remain uncounted.
+Each new monitor/application instance starts a new zero-total session. Stopping a
+monitor does not erase its already accepted data.
+
+`RollingTrafficWindow` stores immutable `TrafficHistorySample` values, using the
+counter interval's actual end timestamp for valid speeds and the actual observation
+time for unavailable gaps. Each point also retains a wall-clock observation time,
+sequence, adapter identity, measurement status, and adapter-boundary flag. Zero is
+a valid speed; unavailable data stays absent. Identity changes and reconnections
+mark boundaries so a future renderer can break its paths. No missing points are
+interpolated or synthesized.
+
+Samples exactly 60 seconds old remain; older samples expire. Both updates and
+read-only views apply monotonic expiry, including when the worker is blocked or
+stopped. An additional **128-sample** cap bounds internal memory during unusually
+fast or same-timestamp bursts. At the normal approximately one-second cadence,
+the complete 60-second window fits. A burst can evict older points still inside
+60 seconds; it never produces replacement or averaged samples. Existing immutable
+snapshots held by a caller remain unchanged.
+
+Each accepted monitoring poll receives a positive, increasing `MonitoringSnapshot`
+sequence **after** the cancellation and monotonic-order guards. Sequence zero is
+reserved for unaccepted startup/shutdown views. Only the sampling worker updates
+the tracker and window, once per accepted poll, inside the short existing lifecycle
+publication guard. That bounded in-memory step contains no I/O, OSHI calls, user
+callbacks, or reader-held locks. Cancelled late reads cannot change totals or
+history. Source counters older than the preceding accepted observation are gaps,
+not a way to reconstruct previously missed traffic.
+
+The standalone tracker/window acceptors reject duplicate or lower sequences and
+older timestamps. The tracker additionally rejects replayed/overlapping already
+counted intervals, even if assigned a new sequence. They are single-writer
+components with thread-safe immutable reads, matching the monitor's existing
+single-worker architecture; concurrent external writers are not supported.
+
+`NetworkMonitorService` exposes:
+
+- `dataSnapshot()`: one coherent `MonitoringDataSnapshot` containing the last
+  accepted poll, totals, and current immutable history.
+- `sessionTotals()`: current exact immutable totals.
+- `trafficHistory()`: the immutable, currently retained points.
+- `latestSnapshot()`: the existing live-status/freshness view from Phase 2.
+
+Use `dataSnapshot()` when the three data values must correspond to the same
+accepted poll. Independent getter calls can span different publications. Repeated
+reads never accumulate bytes or append history. `latestAccepted` is empty before
+the first accepted poll and remains the last factual observation after stop or
+expiry. Derived `STALE` views and lifecycle messages do not become new historical
+samples. Future live UI code should use the freshness-aware status as appropriate.
+
+New production files are `SessionTrafficTracker`, `RollingTrafficWindow`,
+`TrafficDelta`, `SessionTrafficTotals`, `TrafficHistorySample`, and
+`MonitoringDataSnapshot`. Existing calculator/measurement/snapshot/service files
+were extended; OSHI access, adapter selection, Maven dependencies, the JavaFX
+controller, FXML, CSS, and application lifecycle were preserved.
 
 ## Tests
 
@@ -180,6 +252,13 @@ deliberately logs warnings; those expected messages are not test failures.
 
 The resource test is not a JavaFX rendering test. GUI startup, visual layout, and
 normal window shutdown were separately verified on an actual Windows desktop.
+
+Phase 3 adds synthetic totals/window tests, exact-delta calculator checks, and
+service integration tests. Coverage includes values beyond `long` capacity,
+rounded-to-zero display rates, duplicates, replayed intervals, stale order,
+immutable snapshots, expiry, clock wraparound, adapter boundaries, cancellation,
+and coherent reads while another thread publishes 1,000 synthetic samples. No
+automated test depends on real network traffic.
 
 ## Phase 1 verification
 
@@ -276,4 +355,33 @@ Only Wi-Fi was observed live. Ethernet, cable removal, Wi-Fi toggling, VPN switc
 sleep/resume, and ambiguous drivers have synthetic coverage or documented behavior,
 but were not physically exercised. No network connection was disrupted for these
 checks. Physical identification remains heuristic; counters include all traffic on
-the selected adapter. Phase 3 has not started and requires separate approval.
+the selected adapter. Phase 3 was subsequently approved and is recorded below.
+
+## Phase 3 verification
+
+Verified on **18 November 2026**, using the same Windows 11 x64, JDK 25, pinned
+Maven wrapper, and dependency versions:
+
+- Compilation, tests, packaging, and `clean verify` passed: **117 tests, 0 failures,
+  0 errors, 0 skipped**. All Phase 1/2 test scenarios remain included.
+- Synthetic integration checks verify exactly-once totals/history updates, idle
+  zeros, read-failure and reset gaps, adapter switches without spikes, late-result
+  discard after stop, and immutable coherent data publication under concurrent reads.
+- A real NetPulse JavaFX window opened, rendered the unchanged dashboard correctly,
+  and remained responsive with the separate `NetPulse-network-monitor` worker.
+- Normal window closure exited the application and Maven launcher with code 0.
+  The launch log contained no warnings, exceptions, FXML errors, or CSS errors.
+
+Commands used:
+
+```powershell
+.\mvnw.cmd --batch-mode --no-transfer-progress clean verify *> phase3-build.log
+.\mvnw.cmd --batch-mode --no-transfer-progress javafx:run *> phase3-javafx-launch.log
+```
+
+The bounded-memory and concurrent-reader checks are unit/integration tests with
+synthetic inputs, not an extended live-traffic soak test. The Phase 2 physical
+adapter-identification and native-call interruption limitations remain. No new
+dependencies, graph UI, gauges, layout changes, Ookla integration, test intervals,
+database, export, or persistence were added. No known Phase 3 blockers remain.
+Phase 4 has not started and requires separate approval.

@@ -15,13 +15,18 @@ import java.util.function.LongSupplier;
 
 import com.netpulse.core.AdapterSelector;
 import com.netpulse.core.NetworkSpeedCalculator;
+import com.netpulse.core.RollingTrafficWindow;
+import com.netpulse.core.SessionTrafficTracker;
 import com.netpulse.model.AdapterInfo;
 import com.netpulse.model.AdapterSample;
 import com.netpulse.model.AdapterSelection;
 import com.netpulse.model.MonitoringSnapshot;
+import com.netpulse.model.MonitoringDataSnapshot;
 import com.netpulse.model.MonitoringSnapshot.ConnectionStatus;
 import com.netpulse.model.SpeedMeasurement;
 import com.netpulse.model.SpeedMeasurement.Status;
+import com.netpulse.model.SessionTrafficTotals;
+import com.netpulse.model.TrafficHistorySample;
 
 /**
  * One worker, fixed delays, no JavaFX dependency. Listener calls run on the worker
@@ -39,11 +44,15 @@ public final class NetworkMonitorService implements AutoCloseable {
     private final Object lifecycle = new Object();
     private final AdapterSelector selector = new AdapterSelector();
     private final NetworkSpeedCalculator calculator = new NetworkSpeedCalculator();
+    private final SessionTrafficTracker sessionTracker = new SessionTrafficTracker();
+    private final RollingTrafficWindow trafficWindow = new RollingTrafficWindow();
+    private volatile MonitoringDataSnapshot data = MonitoringDataSnapshot.empty();
     private volatile MonitoringSnapshot latest;
     private volatile boolean running;
     private boolean closed;
     private ScheduledFuture<?> task;
     private AdapterInfo.Id selected;
+    private long sequence;
 
     public NetworkMonitorService(NetworkStatsProvider provider) {
         this(provider, snapshot -> { });
@@ -102,11 +111,26 @@ public final class NetworkMonitorService implements AutoCloseable {
         MonitoringSnapshot current = latest;
         if (running && nanoClock.getAsLong() - current.observedAtNanos()
                 > NetworkSpeedCalculator.MAX_SAMPLING_GAP_NANOS) {
-            return new MonitoringSnapshot(current.observedAt(), current.observedAtNanos(),
+            return new MonitoringSnapshot(current.sequence(), current.observedAt(), current.observedAtNanos(),
                     ConnectionStatus.UNKNOWN, current.selection(), SpeedMeasurement.unavailable(Status.STALE),
                     "No fresh monitoring snapshot for more than three seconds");
         }
         return current;
+    }
+
+    /** One coherent view of the last accepted sample, exact totals, and current history. */
+    public MonitoringDataSnapshot dataSnapshot() {
+        MonitoringDataSnapshot current = data;
+        return new MonitoringDataSnapshot(current.latestAccepted(), current.sessionTotals(),
+                RollingTrafficWindow.retainRecent(current.history(), nanoClock.getAsLong()));
+    }
+
+    public SessionTrafficTotals sessionTotals() {
+        return data.sessionTotals();
+    }
+
+    public List<TrafficHistorySample> trafficHistory() {
+        return dataSnapshot().history();
     }
 
     public boolean isRunning() {
@@ -164,6 +188,14 @@ public final class NetworkMonitorService implements AutoCloseable {
                         > NetworkSpeedCalculator.MAX_SAMPLING_GAP_NANOS) {
                     calculator.reset();
                     measurement = SpeedMeasurement.unavailable(Status.STALE);
+                } else if (nanoClock.getAsLong() - sample.counters().orElseThrow().sampledAtNanos() < 0) {
+                    calculator.reset();
+                    measurement = SpeedMeasurement.unavailable(Status.INVALID_TIME);
+                } else if (data.latestAccepted().isPresent()
+                        && sample.counters().orElseThrow().sampledAtNanos()
+                            - data.latestAccepted().orElseThrow().observedAtNanos() < 0) {
+                    calculator.reset();
+                    measurement = SpeedMeasurement.unavailable(Status.STALE);
                 } else {
                     measurement = calculator.calculate(selected, sample.counters().orElseThrow());
                 }
@@ -182,6 +214,18 @@ public final class NetworkMonitorService implements AutoCloseable {
             if (!running) {
                 return; // In-flight native reads cannot publish into a stopped lifecycle.
             }
+            if (data.latestAccepted().isPresent() && next.observedAtNanos()
+                    - data.latestAccepted().orElseThrow().observedAtNanos() < 0) {
+                calculator.reset();
+                return;
+            }
+            next = next.withSequence(++sequence);
+            // Single-writer, bounded in-memory work only. No reader, callback, or
+            // OSHI operation holds this short publication/shutdown critical section.
+            sessionTracker.accept(next);
+            trafficWindow.accept(next);
+            data = new MonitoringDataSnapshot(Optional.of(next), sessionTracker.snapshot(),
+                    trafficWindow.snapshot(next.observedAtNanos()));
             latest = next;
         }
         // No user callback runs while holding the lifecycle lock. An already
@@ -197,6 +241,6 @@ public final class NetworkMonitorService implements AutoCloseable {
 
     private MonitoringSnapshot snapshot(ConnectionStatus status, Optional<AdapterSelection> selection,
             SpeedMeasurement measurement, String detail) {
-        return new MonitoringSnapshot(wallClock.instant(), nanoClock.getAsLong(), status, selection, measurement, detail);
+        return new MonitoringSnapshot(0, wallClock.instant(), nanoClock.getAsLong(), status, selection, measurement, detail);
     }
 }
