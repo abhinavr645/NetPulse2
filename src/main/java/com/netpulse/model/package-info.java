@@ -1,2 +1,2 @@
-/** Immutable application data models, reserved for future phases. */
+/** Immutable adapter metadata, counter readings, and monitoring measurements. */
 package com.netpulse.model;

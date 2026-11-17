@@ -1,2 +1,2 @@
-/** Network calculations and domain logic, reserved for future phases. */
+/** Network calculations and adapter selection, independent of I/O and JavaFX. */
 package com.netpulse.core;

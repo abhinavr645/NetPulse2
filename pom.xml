@@ -8,7 +8,7 @@
     <artifactId>netpulse</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <name>NetPulse</name>
-    <description>NetPulse JavaFX desktop application — Phase 1 foundation.</description>
+    <description>NetPulse JavaFX desktop application and independent OSHI monitoring engine.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -86,7 +86,7 @@
                 <configuration>
                     <mainClass>com.netpulse.ui.NetPulseApplication</mainClass>
                     <options>
-                        <option>--enable-native-access=javafx.graphics</option>
+                        <option>--enable-native-access=javafx.graphics,ALL-UNNAMED</option>
                     </options>
                 </configuration>
             </plugin>

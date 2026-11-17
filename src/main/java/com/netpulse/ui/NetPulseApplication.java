@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Objects;
 
+import com.netpulse.monitor.NetworkMonitorService;
+import com.netpulse.monitor.OshiNetworkStatsProvider;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -12,6 +14,7 @@ import javafx.stage.Stage;
 
 /** JavaFX entry point for the NetPulse desktop application. */
 public final class NetPulseApplication extends Application {
+    private NetworkMonitorService monitor;
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -25,10 +28,17 @@ public final class NetPulseApplication extends Application {
         stage.setMinWidth(640);
         stage.setMinHeight(520);
         stage.show();
+        monitor = new NetworkMonitorService(new OshiNetworkStatsProvider());
+        monitor.start();
     }
 
-    // JavaFX exits naturally when the last window closes. Phase 1 owns no
-    // background tasks, processes, or other resources requiring stop() cleanup.
+    @Override
+    public void stop() {
+        if (monitor != null) {
+            monitor.stop();
+        }
+    }
+
     public static void main(String[] args) {
         launch(args);
     }
