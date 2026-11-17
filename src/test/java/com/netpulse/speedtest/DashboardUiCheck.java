@@ -131,6 +131,23 @@ public final class DashboardUiCheck {
                         await(() -> !tests.isRunning(), 5);
                         check(tests.periodSnapshot(System.nanoTime()).stream().noneMatch(period -> period.active()),
                                 "Shutdown must close the process period");
+                        await(() -> Thread.getAllStackTraces().keySet().stream().noneMatch(thread ->
+                                thread.isAlive() && (thread.getName().equals("NetPulse-network-monitor")
+                                        || thread.getName().startsWith("NetPulse-speedtest"))), 5);
+                        fx(() -> {
+                            var refreshField = FxDashboardController.class.getDeclaredField("refresh");
+                            refreshField.setAccessible(true);
+                            check(((javafx.animation.Timeline) refreshField.get(controller)).getStatus()
+                                    == javafx.animation.Animation.Status.STOPPED, "Dashboard timer must stop before JavaFX exits");
+                            for (String id : new String[] {"downloadGauge", "uploadGauge"}) {
+                                var animationField = com.netpulse.ui.SpeedometerView.class.getDeclaredField("animation");
+                                animationField.setAccessible(true);
+                                check(((javafx.animation.Timeline) animationField.get(root.lookup("#" + id))).getStatus()
+                                        == javafx.animation.Animation.Status.STOPPED, "Gauge animation must stop before JavaFX exits");
+                            }
+                            return null;
+                        });
+                        System.out.println("OWNED WORKERS TERMINATED; UI TIMELINES STOPPED BEFORE PLATFORM EXIT");
                     } catch (Throwable problem) { failure = problem; problem.printStackTrace(); }
                     Platform.exit();
                 }

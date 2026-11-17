@@ -169,10 +169,12 @@ public final class FxDashboardController implements AutoCloseable {
     @Override public void close() {
         if (closed) { return; }
         closed = true;
-        refresh.stop();
-        downloadGauge.close();
-        uploadGauge.close();
-        trafficChart.close();
+        // An aborted FXML load may leave these fields uninjected. A never-started
+        // timer also needs no FX-thread scheduling during early cleanup.
+        if (refresh.getStatus() != javafx.animation.Animation.Status.STOPPED) { refresh.stop(); }
+        if (downloadGauge != null) { downloadGauge.close(); }
+        if (uploadGauge != null) { uploadGauge.close(); }
+        if (trafficChart != null) { trafficChart.close(); }
         speedTests.close();
         monitor.close();
     }

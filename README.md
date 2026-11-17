@@ -1,11 +1,12 @@
 # NetPulse
 
 A fresh JavaFX desktop application for a college project. This implementation
-currently contains **Phases 1-6**: the Maven/JavaFX foundation, independent OSHI
+currently contains **Phases 1-7**: the Maven/JavaFX foundation, independent OSHI
 monitoring, session totals, rolling traffic data, an asynchronous official
 Ookla CLI service, and the functional JavaFX dashboard with a live 60-second
 traffic graph and CLI execution-period shading. No previous NetPulse source was
-inspected or reused.
+inspected or reused. Phase 7 adds integration/reliability verification and a
+focused fix for cleanup after an aborted FXML startup.
 
 ## Requirements
 
@@ -63,6 +64,8 @@ See [Phase 5 implementation and verification](docs/phase5-verification.md) for
 data flow, the changed files, desktop checks, screenshots, and limitations.
 See [Phase 6 graph and correlation verification](docs/phase6-verification.md) for
 graph semantics, process timing, tests, Windows checks and before/during/after images.
+See [Phase 7 integration and reliability report](docs/phase7-verification.md) for
+the final clean build, prolonged-run measurements, real benchmark and readiness limits.
 
 `target/netpulse-1.0.0-SNAPSHOT.jar` is the ordinary Maven application JAR, not a
 self-contained executable or installer. Use `javafx:run` to launch with the required
@@ -201,8 +204,8 @@ callback may finish, and a native call that ignores interruption may finish late
 the worker is a daemon and cannot keep the application alive.
 
 Phase 3 extends this engine with session totals and rolling data as described
-below. Phase 4 adds the independent CLI service. Gauges, charts, persistent traffic
-history, databases, and servers remain unimplemented.
+below. Phase 4 adds the independent CLI service; Phases 5/6 add gauges and charts.
+Persistent traffic history, databases and servers remain outside scope.
 
 The Windows metadata values follow Microsoft's
 [MIB_IF_ROW2 documentation](https://learn.microsoft.com/en-us/windows/win32/api/netioapi/ns-netioapi-mib_if_row2).
@@ -568,8 +571,8 @@ Application changes only create the idle service and close it during shutdown.
 Tests add parser/discovery/service cases, controlled execution/shutdown helpers,
 and `src/test/resources/speedtest/synthetic-result.json` with invented values and
 verified field names. At Phase 4 completion, dashboard integration remained for
-Phase 5. Charts, graph shading, execution-interval visualization, persistent
-results, and automatic benchmarks remain outside the implemented scope.
+Phase 5. Phases 5/6 subsequently added gauges, charts and graph shading. Persistent
+results and automatic benchmarks remain outside scope.
 
 The official manual limits use to personal, non-commercial use through a CLI on a
 personal computer and refers to Ookla's EULA, terms, and privacy policy. Current
@@ -585,5 +588,5 @@ References: [official CLI page](https://www.speedtest.net/apps/cli),
 [terms](https://www.speedtest.net/about/terms),
 [privacy policy](https://www.speedtest.net/about/privacy).
 
-Phase 6 is complete; see its verification report linked above. Phase 7 requires
-separate approval and has not been implemented.
+Phase 7 is complete; see its verification report linked above. Packaging,
+distribution and further phases have not started.

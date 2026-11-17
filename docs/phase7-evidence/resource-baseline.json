@@ -1,0 +1,10 @@
+﻿{
+    "processId":  16096,
+    "startTimeUtc":  "2026-11-17T21:15:18.5311020Z",
+    "observedAtUtc":  "2026-11-17T21:15:54.4153570Z",
+    "responding":  true,
+    "workingSetBytes":  386023424,
+    "privateBytes":  430559232,
+    "threadCount":  72,
+    "cpuSeconds":  17.125
+}

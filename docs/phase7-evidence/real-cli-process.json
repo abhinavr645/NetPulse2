@@ -1,0 +1,6 @@
+﻿{
+    "ProcessId":  13104,
+    "ParentProcessId":  16096,
+    "ExecutablePath":  "C:\\Users\\abhin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ookla.Speedtest.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\speedtest.exe",
+    "CommandLine":  "C:\\Users\\abhin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ookla.Speedtest.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\speedtest.exe --format=json"
+}

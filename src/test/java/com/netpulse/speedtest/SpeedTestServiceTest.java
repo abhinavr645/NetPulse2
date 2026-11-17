@@ -324,6 +324,46 @@ class SpeedTestServiceTest {
         return new SpeedTestService(locator, launcher, ignored -> { }, Duration.ofSeconds(8), Duration.ofMillis(100), CLOCK);
     }
 
+    @Test
+    void repeatedMixedBenchmarksReuseWorkersAndReapEveryProcess() throws Exception {
+        var workerThreads = java.util.concurrent.ConcurrentHashMap.<Thread>newKeySet();
+        try (Harness harness = new Harness("success", Duration.ofSeconds(8), _ -> workerThreads.add(Thread.currentThread()))) {
+            for (int test = 1; test <= 24; test++) {
+                String mode = switch (test % 4) {
+                    case 1 -> "success";
+                    case 2 -> "nonzero";
+                    case 3 -> "malformed";
+                    default -> "hang";
+                };
+                harness.mode.set(mode);
+                var completion = harness.service.start();
+                if (mode.equals("hang")) {
+                    long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+                    while (harness.service.latestState().testId() != test
+                            || harness.service.latestState().phase() != Phase.RUNNING) {
+                        assertTrue(System.nanoTime() < deadline, "Current controlled benchmark must start");
+                        Thread.sleep(10);
+                    }
+                    assertTrue(harness.service.cancel());
+                }
+                var state = result(completion);
+                assertEquals(test, state.testId());
+                assertEquals(mode.equals("success") ? Phase.COMPLETED : mode.equals("hang") ? Phase.CANCELLED : Phase.FAILED, state.phase());
+                assertFalse(harness.service.isRunning());
+                assertTrue(harness.processes.stream().noneMatch(Process::isAlive));
+                assertEquals(test, harness.service.periodSnapshot(System.nanoTime()).size());
+                assertTrue(harness.service.periodSnapshot(System.nanoTime()).stream().noneMatch(period -> period.active()));
+            }
+            assertEquals(1, workerThreads.size(), "Repeated tests must reuse the orchestration worker");
+            assertEquals(48, harness.processes.size(), "One preflight plus one benchmark process per test");
+        }
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3);
+        while (workerThreads.stream().anyMatch(Thread::isAlive)) {
+            assertTrue(System.nanoTime() < deadline, "The orchestration worker must terminate after close");
+            Thread.sleep(10);
+        }
+    }
+
     private Path pe() throws IOException {
         Path parent = Files.createDirectories(directory.resolve("CLI with spaces"));
         return Files.write(parent.resolve("speedtest.exe"), new byte[] {'M', 'Z', 0, 0});

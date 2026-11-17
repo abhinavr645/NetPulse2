@@ -514,6 +514,55 @@ class NetworkMonitorServiceTest {
                 Duration.ofSeconds(1), nanos::get, WALL_CLOCK);
     }
 
+    @Test
+    void eightSimulatedHoursOfDisconnectsSwitchesResetsAndFailuresKeepExactBoundedData() {
+        ManualScheduler scheduler = new ManualScheduler();
+        AtomicLong nanos = new AtomicLong();
+        AtomicInteger stage = new AtomicInteger();
+        AdapterFixture first = new AdapterFixture(1);
+        AdapterFixture second = new AdapterFixture(2);
+        var chart = new com.netpulse.ui.TrafficChartData();
+        try (NetworkMonitorService monitor = service(() -> switch (stage.get()) {
+            case 0 -> List.of(first.reading(100, 200, nanos.get()));
+            case 1, 2 -> List.of(first.reading(110, 220, nanos.get()));
+            case 3 -> List.of(first.reading(5, 7, nanos.get()));
+            case 4 -> List.of(first.reading(8, 11, nanos.get()));
+            case 5 -> List.of(second.reading(200, 300, nanos.get()));
+            case 6 -> List.of(second.reading(210, 320, nanos.get()));
+            case 7 -> throw new IOException("Synthetic read failure");
+            case 8 -> List.of(second.reading(500, 600, nanos.get()));
+            case 9 -> List.of(second.reading(505, 607, nanos.get()));
+            case 11 -> List.of(first.reading(800, 900, nanos.get()));
+            case 12 -> List.of(first.reading(802, 903, nanos.get()));
+            default -> List.of(); // disconnect and finish each cycle disconnected
+        }, new ArrayList<>(), scheduler, nanos)) {
+            monitor.start();
+            // 2,100 * 14 one-second observations = 29,400 seconds (>8 hours).
+            for (int cycle = 0; cycle < 2_100; cycle++) {
+                for (int step = 0; step < 14; step++) {
+                    stage.set(step);
+                    fire(scheduler, nanos, cycle * 14L + step);
+                    if (step == 2) {
+                        assertEquals(0, monitor.latestSnapshot().measurement().speed().orElseThrow().downloadMbps());
+                    }
+                }
+                var data = monitor.dataSnapshot();
+                // Independent golden totals per cycle: 10+3+10+5+2 down,
+                // 20+4+20+7+3 up; reset/baseline/failure/disconnect add nothing.
+                assertEquals(BigInteger.valueOf((cycle + 1L) * 30), data.sessionTotals().downloadedBytes());
+                assertEquals(BigInteger.valueOf((cycle + 1L) * 54), data.sessionTotals().uploadedBytes());
+                assertTrue(data.history().size() <= 61);
+                var frame = chart.project(data.history(), List.of(), nanos.get(), WALL_CLOCK.instant());
+                assertEquals(data.history().stream().filter(sample -> sample.measurement().speed().isPresent()).count(), frame.pointCount());
+                assertTrue(frame.segments().size() >= 3);
+                assertTrue(frame.segments().stream().flatMap(segment -> segment.points().stream())
+                        .allMatch(point -> point.secondsAgo() >= -60 && point.secondsAgo() <= 0));
+            }
+            assertEquals(29_400, monitor.latestSnapshot().sequence());
+        }
+        assertTrue(scheduler.isShutdown());
+    }
+
     private static void fire(ManualScheduler scheduler, AtomicLong nanos, long seconds) {
         nanos.set(seconds * 1_000_000_000L);
         scheduler.fire();
