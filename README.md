@@ -27,7 +27,7 @@ java -version
 javac -version
 .\mvnw.cmd -version
 .\mvnw.cmd clean verify
-.\mvnw.cmd javafx:run
+.\scripts\start-netpulse.ps1
 ```
 
 The **NetPulse** window displays live download/upload gauges in Mbps and MB/s,
@@ -42,6 +42,18 @@ Test** to request a benchmark, and **Cancel** to stop it. If the official CLI is
 not on PATH, use **Choose CLI…** to select its existing `speedtest.exe`. This
 selection lasts for the current application session only. NetPulse does not
 download the CLI or accept its terms. No benchmark runs automatically.
+
+PATH discovery is the default. The recommended PowerShell launcher reads Windows'
+current saved machine/user PATH for its child process, so a new Winget installation
+is visible even when the editor or terminal has an older inherited environment.
+It preserves process-only tooling entries and restores the caller's PATH on exit;
+it does not modify Windows' saved environment or hardcode an executable location.
+In a fresh terminal, `.\mvnw.cmd javafx:run` continues to work directly. If launching
+from an IDE without the script after installing the CLI, restart the IDE first.
+The existing service validates the discovered executable's official Ookla banner
+before running a benchmark. **Choose CLI…** remains an explicit manual fallback.
+See [PATH discovery verification](docs/path-discovery-verification.md) for the
+inherited-environment diagnosis, test results and actual Windows launch evidence.
 
 Closing the window stops UI timers/animations and closes both services without
 waiting on the JavaFX thread. Active CLI cleanup completes on its owned worker

@@ -1,0 +1,9 @@
+﻿{
+    "applicationProcessId":  25500,
+    "cliProcessId":  23996,
+    "parentProcessId":  25500,
+    "executable":  "C:\\Users\\abhin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ookla.Speedtest.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\speedtest.exe",
+    "commandLine":  "C:\\Users\\abhin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ookla.Speedtest.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\speedtest.exe --format=json",
+    "observedAt":  "2026-11-17T21:10:43.2773636Z",
+    "manualSelectionUsed":  false
+}
