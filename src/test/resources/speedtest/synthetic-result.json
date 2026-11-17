@@ -1,0 +1,14 @@
+{
+  "type": "result",
+  "timestamp": "2026-11-18T00:00:00Z",
+  "ping": {"latency": 12.5, "jitter": 1.25, "low": 11, "high": 15},
+  "download": {"bandwidth": 12500000, "bytes": 25000000, "elapsed": 2000,
+    "latency": {"iqm": 35, "low": 20, "high": 50, "jitter": 2}},
+  "upload": {"bandwidth": 6250000, "bytes": 12500000, "elapsed": 2000,
+    "latency": {"iqm": 45, "low": 25, "high": 60, "jitter": 3}},
+  "packetLoss": 0.5,
+  "server": {"id": 100, "host": "example.test", "port": 8080,
+    "name": "Synthetic server", "location": "Test city", "country": "Test country"},
+  "isp": "Synthetic ISP",
+  "result": {"id": "synthetic", "url": "https://example.test/result/synthetic", "persisted": false}
+}

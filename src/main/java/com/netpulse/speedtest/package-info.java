@@ -1,2 +1,2 @@
-/** Official Ookla CLI integration, reserved for future phases. */
+/** Asynchronous official Ookla CLI execution and validated benchmark results. */
 package com.netpulse.speedtest;

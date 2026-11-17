@@ -1,9 +1,9 @@
 # NetPulse
 
 A fresh JavaFX desktop application for a college project. This implementation
-currently contains **Phases 1–3**: the Maven/JavaFX foundation, an independent OSHI
-monitoring engine, exact session totals, and rolling traffic data. No previous
-NetPulse source was inspected or reused.
+currently contains **Phases 1-4**: the Maven/JavaFX foundation, independent OSHI
+monitoring, session totals, rolling traffic data, and an asynchronous official
+Ookla CLI service. No previous NetPulse source was inspected or reused.
 
 ## Requirements
 
@@ -36,7 +36,10 @@ connectivity.
 
 The application now starts one background network-monitor worker after displaying
 the window. No speeds or totals are displayed yet: the approved dashboard shell
-is preserved while the engine maintains the data. Closing the window calls the monitor's nonblocking `stop()` method.
+is preserved while the engine maintains the data. An idle speed-test service is
+also owned by the application, but there are no speed-test controls yet and no
+benchmark runs automatically. Closing the window stops monitoring and closes the
+speed-test service without waiting on the JavaFX thread.
 Startup failures propagate to the launcher instead of being hidden.
 
 `target/netpulse-1.0.0-SNAPSHOT.jar` is the ordinary Maven application JAR, not a
@@ -65,9 +68,10 @@ forced. OSHI brings in `oshi-common` 7.8.0, `jna-jpms` and `jna-platform-jpms` 5
 and `slf4j-api` 2.0.20. There is one matching SLF4J provider and no duplicate
 non-JPMS JNA dependency. JavaFX resolves the Windows-specific native JARs.
 
-OSHI supplies the Phase 2 network counters. Jackson remains a foundation dependency
-for a later phase. The application does not execute Ookla or parse speed-test
-results. No Ookla executable is required, downloaded, or bundled.
+OSHI supplies network counters; Jackson validates Ookla results in Phase 4. An
+official, separately installed Ookla CLI is needed only when a caller explicitly
+starts a benchmark. NetPulse does not download or bundle that executable. The
+normal dashboard startup and automated tests do not require an installed CLI.
 
 ## Project layout
 
@@ -85,7 +89,11 @@ src/main/java/com/netpulse/
     NetworkStatsProvider.java
     OshiNetworkStatsProvider.java
     NetworkMonitorService.java
-  speedtest/                Reserved official CLI integration
+  speedtest/
+    SpeedTestService.java
+    SpeedTestExecutableLocator.java
+    SpeedTestJsonParser.java
+    SpeedTestException.java
   model/                    Immutable metadata, measurements, totals, and history
   ui/
     NetPulseApplication.java
@@ -99,12 +107,12 @@ src/test/java/com/netpulse/
   core/                     Synthetic calculation, selection, totals, and window tests
   monitor/                  Synthetic service tests and manual OSHI check
   support/                  Synthetic adapter fixtures
+  speedtest/                Parser, discovery, and controlled child-process tests
   ui/DashboardResourcesTest.java
 ```
 
-The `speedtest` and `util` packages still contain only `package-info.java`
-documentation. The application is a single Maven module and does not need a JPMS
-module descriptor or a dependency-injection framework.
+Only `util` remains a reserved package. The application is a single Maven module
+and does not need a JPMS module descriptor or a dependency-injection framework.
 
 ## Phase 2 monitoring engine
 
@@ -161,8 +169,8 @@ callback may finish, and a native call that ignores interruption may finish late
 the worker is a daemon and cannot keep the application alive.
 
 Phase 3 extends this engine with session totals and rolling data as described
-below. Gauges, charts, Ookla processes, result parsers, persistent traffic history,
-databases, and servers remain unimplemented.
+below. Phase 4 adds the independent CLI service. Gauges, charts, persistent traffic
+history, databases, and servers remain unimplemented.
 
 The Windows metadata values follow Microsoft's
 [MIB_IF_ROW2 documentation](https://learn.microsoft.com/en-us/windows/win32/api/netioapi/ns-netioapi-mib_if_row2).
@@ -384,4 +392,164 @@ synthetic inputs, not an extended live-traffic soak test. The Phase 2 physical
 adapter-identification and native-call interruption limitations remain. No new
 dependencies, graph UI, gauges, layout changes, Ookla integration, test intervals,
 database, export, or persistence were added. No known Phase 3 blockers remain.
-Phase 4 has not started and requires separate approval.
+Phase 4 was subsequently approved and is recorded below.
+
+## Phase 4 official Ookla CLI service
+
+`SpeedTestService` is independent of JavaFX, OSHI, session totals, and traffic
+history. It owns its own orchestration, pipe-reader, and cancellation executors.
+The existing monitor keeps sampling during a benchmark; its adapter-wide traffic
+can include LAN, background, and Ookla traffic. Benchmark results are never fed
+into the monitor, rate calculator, session tracker, or rolling window.
+
+Construct `new SpeedTestService()` for `PATH` discovery, or
+`new SpeedTestService(Path.of("C:/Tools/Ookla/speedtest.exe"))` for an explicit
+override. An overload accepts `Optional<Path>` plus a state listener. The override
+takes precedence and never silently falls back to PATH. Windows `.exe` files are
+checked for readability, executability, and the PE header prefix. Discovery does
+not search Downloads or the working directory implicitly. Spaces in paths are
+handled as part of a single process argument, not shell quoting.
+
+All file and process operations run asynchronously. The service first invokes the
+resolved executable with `--version` and checks the official Ookla version banner.
+This is a compatibility check, not cryptographic authentication of an arbitrary
+executable. The benchmark command is exactly the resolved executable followed by
+`--format=json`. It never invokes a shell, adds license-acceptance flags, opens a
+website to perform the test, installs software, retries automatically, or runs
+recurring benchmarks.
+
+API:
+
+- `start()` immediately reserves the single job and returns a
+  `CompletionStage<SpeedTestState>`. Concurrent starts and starts after close throw
+  `IllegalStateException`; an active test's state is not replaced by that rejection.
+- `latestState()` exposes immutable `IDLE`, `PREPARING`, `RUNNING`, `PROCESSING`,
+  `COMPLETED`, `FAILED`, `TIMED_OUT`, or `CANCELLED` states. PREPARING is published
+  asynchronously. There is no invented percentage; a future UI should use an
+  indeterminate indicator while active.
+- `cancel()` signals the current job and returns without process operations on
+  the caller's thread. The job remains exclusive until cleanup has finished.
+- `close()` is terminal and idempotent, requests cancellation, and shuts down
+  owned executors. Always close the service, normally via application ownership
+  or try-with-resources. The orchestration thread keeps the JVM alive long enough
+  to reap an active CLI during shutdown, then exits; reader/stop threads are daemons.
+
+Listeners run on the service worker and must be brief. Future JavaFX consumers
+must dispatch UI changes through `Platform.runLater`; blocking callbacks would
+delay subsequent CLI work. Notifications are serialized and guarded by test ID and
+current-state identity. Old cancellation/read tasks retain only their own run's
+process reference. A cancellation accepted before terminal publication wins over
+a completed result. A newer test cannot be overwritten by an older callback.
+
+The process wait budget is **120 seconds**, including the version check, whose
+individual wait is capped at five seconds. Stdout and stderr are drained
+concurrently and separately, with **1 MiB stdout** and **64 KiB stderr** limits.
+Overflow terminates the process rather than growing memory. Stdin is closed.
+Known plain-text and structured license/privacy prompts terminate with
+`TERMS_REQUIRED`; users must review and accept terms themselves outside NetPulse.
+
+Cancellation/timeout requests `Process.destroy()`, waits up to 500 ms, then calls
+`destroyForcibly()` and waits up to another 500 ms if necessary. Pipe completion
+waits are bounded to two seconds per reader. Cleanup can therefore extend beyond
+the process deadline. Windows may terminate immediately on `destroy()`; Java does
+not guarantee a graceful CLI-specific shutdown signal there. An in-flight native
+process start cannot be forcibly interrupted before it returns; the returned
+process is then immediately adopted and reaped when cancellation is pending.
+Another test cannot start until that cleanup finishes. Failed termination is
+reported and prevents further starts on that service instance.
+
+`SpeedTestException`/state error codes distinguish missing CLI, invalid executable,
+unaccepted terms, startup failure, timeout, cancellation, nonzero exit, malformed
+JSON, incomplete JSON, bounded-output overflow, and unexpected internal failure.
+Nonzero-exit messages include a bounded stderr excerpt. Missing results are never
+fabricated or replaced by OSHI values.
+
+### Verified result schema and units
+
+Before parser implementation, the existing official Windows CLI **1.2.0.84** was
+identified outside PATH in the user's Downloads directory. Its executable matched
+the official release archive byte-for-byte. The archive SHA256 was
+`13E3D888B845D301A556419E31F14AB9BFF57E3F06089EF2FD3BDC9BA6841EFA`; executable SHA256
+was `C73C4AC2A7CDC48829FE0F9D7EC91CA41C8B434490D4EB3205AAD69C7AA3B921`.
+
+The official archive's `speedtest.md` manual explicitly establishes that machine
+formats use byte rates and millisecond durations. One real `--format=json` attempt
+with closed stdin and no acceptance flags succeeded. The parser uses the observed
+schema:
+
+| CLI JSON field | Meaning / model |
+| --- | --- |
+| `download.bandwidth`, `upload.bandwidth` | Required bytes/second; Mbps = B/s / 125,000; MB/s = B/s / 1,000,000 |
+| `ping.latency`, `ping.jitter` | Required idle latency and jitter in milliseconds |
+| `packetLoss` | Optional percentage, or absent/null when unavailable |
+| `server` | Optional id, name, location, country, host, and port |
+| `isp` | Optional provider text |
+| `result.url` | Optional HTTP(S) result URI |
+| `download.latency`, `upload.latency` | Optional loaded `iqm`, `low`, `high`, and `jitter`, all in milliseconds |
+
+`SpeedTestResult` preserves raw byte rates and exposes Mbps/MB/s accessors. Loaded
+latencies remain distinct from idle ping. `completedAt` is the service's completion
+observation time; parsing does not depend on the CLI's optional root timestamp.
+Missing optional metadata stays absent. Required numbers must be JSON numbers,
+finite, and nonnegative; valid zeros are preserved. Packet loss must be within
+0-100 percent. Present malformed optional metadata is rejected. Jackson rejects
+duplicate fields, trailing JSON, excessive nesting/strings/numbers, wrong result
+types, malformed UTF-8, and invalid or incomplete required results.
+
+### Verification and licensing limits
+
+Final verification on **18 November 2026**:
+
+- `clean verify` passed: **171 tests, 0 failures, 0 errors, 0 skipped**, including
+  all prior 117 test cases. No dependency versions changed or new libraries added.
+- Automated CLI tests launch controlled Java child processes with synthetic JSON;
+  they require no internet, actual Ookla installation, or paid service. Coverage
+  includes pipe flooding/deadlock prevention, output limits, EOF on stdin, missing
+  CLI, bad identity, failures, malformed/incomplete results, plain/structured terms
+  prompts, timeout, cancellation during startup/processing, force escalation,
+  callback ordering, concurrent rejection, and shutdown.
+- A separate application JVM returns from `main` immediately after closing an
+  active service. Its CLI child deliberately delays termination. The test verifies
+  the application JVM waits for cleanup and no owned CLI process survives.
+- Synthetic integration tests confirm OSHI sampling continues during the CLI and
+  that a completed benchmark never changes counter-derived session totals.
+- Exactly **one real benchmark** was run before implementation to verify schema:
+  **198.450304 Mbps download**, **14.026344 Mbps upload**, idle latency **18.122 ms**,
+  jitter **11.057 ms**, packet loss **0%**. Its captured output was subsequently
+  parsed offline by the implementation, with optional metadata and loaded latency
+  preserved. This was a real result; the automated fixture results are synthetic.
+  No second real benchmark was run through the finished service.
+- The final JavaFX build launched visibly with the unchanged dashboard and
+  independent monitor worker. No speed-test worker or benchmark starts while idle.
+  Normal window closure exited the application and Maven launcher with code 0.
+
+Commands:
+
+```powershell
+.\mvnw.cmd --batch-mode --no-transfer-progress clean verify *> phase4-build.log
+.\mvnw.cmd --batch-mode --no-transfer-progress javafx:run *> phase4-javafx-launch.log
+```
+
+Added production files: `SpeedTestService`, `SpeedTestExecutableLocator`,
+`SpeedTestJsonParser`, `SpeedTestException`, `SpeedTestState`, and `SpeedTestResult`.
+Application changes only create the idle service and close it during shutdown.
+Tests add parser/discovery/service cases, controlled execution/shutdown helpers,
+and `src/test/resources/speedtest/synthetic-result.json` with invented values and
+verified field names. There are no dashboard controls, gauges, charts, graph
+shading, execution-interval visualization, persistent results, or automatic benchmarks.
+
+The official manual limits use to personal, non-commercial use through a CLI on a
+personal computer and refers to Ookla's EULA, terms, and privacy policy. Current
+web EULA/terms pages could not be retrieved in this environment. This project does
+not establish redistribution or GUI-wrapper licensing permission. No executable
+is bundled, no terms are accepted automatically, and the verification-only archive
+and raw captured JSON were removed by the clean build. Review the applicable terms
+before any redistribution or use beyond the intended college project.
+
+References: [official CLI page](https://www.speedtest.net/apps/cli),
+[official release archive and included manual](https://install.speedtest.net/app/cli/ookla-speedtest-1.2.0-win64.zip),
+[EULA](https://www.speedtest.net/about/eula),
+[terms](https://www.speedtest.net/about/terms),
+[privacy policy](https://www.speedtest.net/about/privacy).
+
+Phase 4 is complete; Phase 5 has not started and requires separate approval.

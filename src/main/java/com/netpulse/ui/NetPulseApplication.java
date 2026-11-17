@@ -6,6 +6,7 @@ import java.util.Objects;
 
 import com.netpulse.monitor.NetworkMonitorService;
 import com.netpulse.monitor.OshiNetworkStatsProvider;
+import com.netpulse.speedtest.SpeedTestService;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -15,6 +16,7 @@ import javafx.stage.Stage;
 /** JavaFX entry point for the NetPulse desktop application. */
 public final class NetPulseApplication extends Application {
     private NetworkMonitorService monitor;
+    private SpeedTestService speedTests;
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -30,10 +32,15 @@ public final class NetPulseApplication extends Application {
         stage.show();
         monitor = new NetworkMonitorService(new OshiNetworkStatsProvider());
         monitor.start();
+        // Idle until a future dashboard explicitly requests a test; no CLI discovery here.
+        speedTests = new SpeedTestService();
     }
 
     @Override
     public void stop() {
+        if (speedTests != null) {
+            speedTests.close();
+        }
         if (monitor != null) {
             monitor.stop();
         }
