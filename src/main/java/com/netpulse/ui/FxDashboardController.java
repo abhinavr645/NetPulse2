@@ -41,6 +41,7 @@ public final class FxDashboardController implements AutoCloseable {
             identification, monitoringStatus, sessionDownload, sessionUpload, testStatus, cliLocation,
             benchmarkDownload, benchmarkUpload, idlePing, jitter, packetLoss, server, isp, completedAt;
     @FXML private SpeedometerView downloadGauge, uploadGauge;
+    @FXML private TrafficChartView trafficChart;
     @FXML private Button startTest, cancelTest, chooseCli;
     @FXML private ProgressIndicator testProgress;
 
@@ -85,7 +86,8 @@ public final class FxDashboardController implements AutoCloseable {
         monitoringStatus.setText(view.status());
         downloadGauge.showBytesPerSecond(view.speed().map(value -> value.downloadBytesPerSecond()).orElse(null));
         uploadGauge.showBytesPerSecond(view.speed().map(value -> value.uploadBytesPerSecond()).orElse(null));
-        var totals = monitor.dataSnapshot().sessionTotals();
+        var monitoringData = monitor.dataSnapshot();
+        var totals = monitoringData.sessionTotals();
         sessionDownload.setText(SpeedFormatter.traffic(totals.downloadedBytes()));
         sessionUpload.setText(SpeedFormatter.traffic(totals.uploadedBytes()));
 
@@ -99,6 +101,8 @@ public final class FxDashboardController implements AutoCloseable {
         testStatus.setText(actionError == null ? presentation.status() : actionError);
         testStatus.pseudoClassStateChanged(ERROR, actionError != null || presentation.state().error().isPresent());
         presentation.lastSuccess().filter(result -> result != displayedResult).ifPresent(this::display);
+        long nowNanos = System.nanoTime();
+        trafficChart.update(monitoringData.history(), speedTests.periodSnapshot(nowNanos), nowNanos, java.time.Instant.now());
     }
 
     private void display(SpeedTestResult result) {
@@ -152,7 +156,7 @@ public final class FxDashboardController implements AutoCloseable {
         if (closed || presentation.busy(speedTests.isRunning())) {
             throw new IllegalStateException("Cannot change the CLI while a test is active or the dashboard is closed");
         }
-        SpeedTestService replacement = new SpeedTestService(executable);
+        SpeedTestService replacement = speedTests.withExecutable(executable);
         speedTests.close();
         speedTests = replacement;
         presentation.executableChanged();
@@ -168,6 +172,7 @@ public final class FxDashboardController implements AutoCloseable {
         refresh.stop();
         downloadGauge.close();
         uploadGauge.close();
+        trafficChart.close();
         speedTests.close();
         monitor.close();
     }

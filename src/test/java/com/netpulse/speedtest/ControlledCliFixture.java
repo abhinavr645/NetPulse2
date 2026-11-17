@@ -18,6 +18,7 @@ public final class ControlledCliFixture {
         }
         if (!"--format=json".equals(argument)) { throw new IllegalArgumentException("Unexpected CLI argument"); }
         switch (mode) {
+            case "slow-success" -> { Thread.sleep(3_000); System.out.print(result()); }
             case "hang" -> Thread.sleep(60_000);
             case "nonzero" -> { System.err.print("Synthetic server selection failed"); System.exit(7); }
             case "malformed" -> System.out.print("{not JSON}");

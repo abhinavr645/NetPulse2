@@ -57,6 +57,11 @@ class SpeedTestServiceTest {
             assertTrue(threads.stream().allMatch(name -> name.startsWith("NetPulse-speedtest-")));
             assertFalse(harness.service.isRunning());
             assertFalse(harness.service.cancel());
+            assertClosedPeriod(harness.service, Phase.COMPLETED);
+            try (SpeedTestService replacement = harness.service.withExecutable(directory.resolve("other.exe"))) {
+                assertEquals(harness.service.periodSnapshot(System.nanoTime()), replacement.periodSnapshot(System.nanoTime()),
+                        "Choosing another executable must preserve visible completed periods");
+            }
         }
     }
 
@@ -71,6 +76,11 @@ class SpeedTestServiceTest {
             assertEquals(expected, state.error().orElseThrow());
             assertTrue(state.result().isEmpty());
             assertFalse(harness.service.isRunning());
+            if (mode.equals("wrong-version") || mode.equals("version-terms")) {
+                assertTrue(harness.service.periodSnapshot(System.nanoTime()).isEmpty(), "Preflight is not a benchmark period");
+            } else {
+                assertClosedPeriod(harness.service, Phase.FAILED);
+            }
             if (mode.equals("nonzero")) {
                 assertTrue(state.message().contains("code 7"));
                 assertTrue(state.message().contains("Synthetic server selection failed"));
@@ -93,6 +103,7 @@ class SpeedTestServiceTest {
             assertEquals(ErrorCode.TIMEOUT, state.error().orElseThrow());
             assertTrue(state.result().isEmpty());
             assertTrue(harness.processes.stream().noneMatch(Process::isAlive));
+            assertClosedPeriod(harness.service, Phase.TIMED_OUT);
         }
     }
 
@@ -101,16 +112,22 @@ class SpeedTestServiceTest {
         try (Harness harness = new Harness("hang")) {
             var completion = harness.service.start();
             assertTrue(harness.running.await(3, TimeUnit.SECONDS));
+            assertTrue(harness.service.periodSnapshot(System.nanoTime()).getFirst().active());
             assertThrows(IllegalStateException.class, harness.service::start);
             assertTimeoutPreemptively(Duration.ofSeconds(1), () -> assertTrue(harness.service.cancel()));
             var cancelled = result(completion);
             assertEquals(Phase.CANCELLED, cancelled.phase());
             assertEquals(ErrorCode.CANCELLED, cancelled.error().orElseThrow());
+            assertClosedPeriod(harness.service, Phase.CANCELLED);
             harness.mode.set("success");
             var newer = result(harness.service.start());
             assertEquals(Phase.COMPLETED, newer.phase());
             assertEquals(2, newer.testId());
             assertEquals(newer, harness.service.latestState());
+            var periods = harness.service.periodSnapshot(System.nanoTime());
+            assertEquals(2, periods.size());
+            assertEquals(Phase.CANCELLED, periods.getFirst().outcome().orElseThrow());
+            assertEquals(Phase.COMPLETED, periods.getLast().outcome().orElseThrow());
             assertOrderedTestIds(harness.events);
         }
     }
@@ -206,6 +223,7 @@ class SpeedTestServiceTest {
         var missing = new SpeedTestExecutableLocator(Optional.empty(), "");
         try (SpeedTestService service = service(missing, command -> { throw new AssertionError("Must not execute"); })) {
             assertEquals(ErrorCode.NOT_FOUND, result(service.start()).error().orElseThrow());
+            assertTrue(service.periodSnapshot(System.nanoTime()).isEmpty());
         }
         var invalid = new SpeedTestExecutableLocator(Optional.of(directory.resolve("missing.exe")), "");
         try (SpeedTestService service = service(invalid, command -> { throw new AssertionError("Must not execute"); })) {
@@ -214,10 +232,34 @@ class SpeedTestServiceTest {
         var valid = new SpeedTestExecutableLocator(Optional.of(pe()), "");
         try (SpeedTestService service = service(valid, command -> { throw new IOException("Synthetic startup failure"); })) {
             assertEquals(ErrorCode.STARTUP_FAILED, result(service.start()).error().orElseThrow());
+            assertTrue(service.periodSnapshot(System.nanoTime()).isEmpty());
         }
         try (SpeedTestService service = service(valid, command -> { throw new IllegalStateException("Synthetic internal failure"); })) {
             assertEquals(ErrorCode.INTERNAL_ERROR, result(service.start()).error().orElseThrow());
         }
+    }
+
+    @Test
+    void successfulPreflightButFailedBenchmarkStartCreatesNoPeriod() throws Exception {
+        try (Harness harness = new Harness("success")) {
+            harness.failBenchmarkStartup = true;
+            var state = result(harness.service.start());
+            assertEquals(ErrorCode.STARTUP_FAILED, state.error().orElseThrow());
+            assertTrue(harness.service.periodSnapshot(System.nanoTime()).isEmpty());
+            assertEquals(1, harness.processes.size(), "Only --version started");
+        }
+    }
+
+    private static void assertClosedPeriod(SpeedTestService service, Phase outcome) {
+        var periods = service.periodSnapshot(System.nanoTime());
+        assertEquals(1, periods.size());
+        var period = periods.getFirst();
+        assertFalse(period.active());
+        assertEquals(outcome, period.outcome().orElseThrow());
+        assertTrue(period.end().orElseThrow().terminationConfirmed());
+        assertTrue(period.end().orElseThrow().atNanos() - period.startedAtNanos() >= 0);
+        assertEquals(CLOCK.instant(), period.startedAt());
+        assertEquals(CLOCK.instant(), period.end().orElseThrow().at());
     }
 
     @Test
@@ -312,6 +354,7 @@ class SpeedTestServiceTest {
         final AtomicBoolean firstLaunch = new AtomicBoolean(true);
         final SpeedTestService service;
         volatile boolean blockFirstLaunch;
+        volatile boolean failBenchmarkStartup;
         volatile boolean resistDestroy;
         AtomicBoolean graceful = new AtomicBoolean();
         AtomicBoolean forced = new AtomicBoolean();
@@ -324,6 +367,9 @@ class SpeedTestServiceTest {
             Path executable = pe();
             service = new SpeedTestService(new SpeedTestExecutableLocator(Optional.empty(), executable.getParent().toString()), command -> {
                 commands.add(command);
+                if (failBenchmarkStartup && command.getLast().equals("--format=json")) {
+                    throw new IOException("Synthetic benchmark startup failure after preflight");
+                }
                 if (firstLaunch.compareAndSet(true, false) && blockFirstLaunch) {
                     launchEntered.countDown();
                     await(launchRelease);

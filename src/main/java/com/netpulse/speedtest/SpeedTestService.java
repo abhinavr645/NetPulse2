@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import com.netpulse.model.SpeedTestResult;
+import com.netpulse.model.SpeedTestPeriod;
 import com.netpulse.model.SpeedTestState;
 import com.netpulse.model.SpeedTestState.ErrorCode;
 import com.netpulse.model.SpeedTestState.Phase;
@@ -48,6 +49,7 @@ public final class SpeedTestService implements AutoCloseable {
     private final Duration timeout;
     private final Duration grace;
     private final Clock clock;
+    private final SpeedTestPeriodTracker periods;
     // Keep an active cleanup alive when the last JavaFX window closes. close()
     // shuts this executor down, and its thread exits after the child is reaped.
     private final ExecutorService worker = Executors.newSingleThreadExecutor(threads("NetPulse-speedtest", false));
@@ -70,12 +72,19 @@ public final class SpeedTestService implements AutoCloseable {
     // Controlled fixtures exercise the same pipe, timeout, cancellation, and cleanup code.
     SpeedTestService(SpeedTestExecutableLocator locator, ProcessLauncher launcher,
             Consumer<SpeedTestState> listener, Duration timeout, Duration grace, Clock clock) {
+        this(locator, launcher, listener, timeout, grace, clock, new SpeedTestPeriodTracker());
+    }
+
+    private SpeedTestService(SpeedTestExecutableLocator locator, ProcessLauncher launcher,
+            Consumer<SpeedTestState> listener, Duration timeout, Duration grace, Clock clock,
+            SpeedTestPeriodTracker periods) {
         this.locator = Objects.requireNonNull(locator);
         this.launcher = Objects.requireNonNull(launcher);
         this.listener = Objects.requireNonNull(listener);
         this.timeout = positive(timeout);
         this.grace = positive(grace);
         this.clock = Objects.requireNonNull(clock);
+        this.periods = Objects.requireNonNull(periods);
     }
 
     /** Returns immediately; the exclusive job includes discovery and cleanup. */
@@ -83,7 +92,8 @@ public final class SpeedTestService implements AutoCloseable {
         synchronized (lifecycle) {
             if (closed) { throw new IllegalStateException("The speed-test service is closed"); }
             if (active != null) { throw new IllegalStateException("A speed test is already active"); }
-            Run run = new Run(++nextId, System.nanoTime() + timeout.toNanos());
+            long now = System.nanoTime();
+            Run run = new Run(++nextId, now + timeout.toNanos(), periods.reserve(now));
             active = run;
             try { worker.execute(() -> execute(run)); }
             catch (RejectedExecutionException failure) { active = null; throw failure; }
@@ -93,6 +103,18 @@ public final class SpeedTestService implements AutoCloseable {
 
     public SpeedTestState latestState() { return state; }
     public boolean isRunning() { return active != null; }
+
+    public List<SpeedTestPeriod> periodSnapshot(long nowNanos) { return periods.snapshot(nowNanos); }
+
+    /** Retain this session's correlation history when an idle dashboard selects another CLI. */
+    public SpeedTestService withExecutable(Path executable) {
+        synchronized (lifecycle) {
+            if (active != null) { throw new IllegalStateException("Cannot replace an active CLI"); }
+            return new SpeedTestService(new SpeedTestExecutableLocator(Optional.of(executable)),
+                    command -> new ProcessBuilder(command).redirectErrorStream(false).start(),
+                    listener, timeout, grace, clock, periods);
+        }
+    }
 
     /** Signals cancellation without waiting or touching the process on the caller's thread. */
     public boolean cancel() {
@@ -164,6 +186,7 @@ public final class SpeedTestService implements AutoCloseable {
                 terminal = failed(run, ErrorCode.INTERNAL_ERROR,
                         "The CLI process could not be terminated; this service cannot start another test");
             }
+            periods.finished(run.periodToken, terminal.phase(), System.nanoTime(), clock.instant());
             state = terminal;
             active = null; // Released only after all process/pipe cleanup paths have run.
             if (run.cleanupFailed.get()) { closed = true; }
@@ -191,6 +214,7 @@ public final class SpeedTestService implements AutoCloseable {
         Capture stdout = new Capture(STDOUT_LIMIT, true);
         Capture stderr = new Capture(STDERR_LIMIT, false);
         try {
+            if (benchmark) { periods.started(run.periodToken, run.id, System.nanoTime(), clock.instant()); }
             process.getOutputStream().close();
             stdoutTask = readers.submit(() -> drain(run, process.getInputStream(), stdout));
             stderrTask = readers.submit(() -> drain(run, process.getErrorStream(), stderr));
@@ -201,6 +225,7 @@ public final class SpeedTestService implements AutoCloseable {
             if (budget <= 0 || !process.waitFor(budget, TimeUnit.NANOSECONDS)) {
                 throw new SpeedTestException(ErrorCode.TIMEOUT, "Ookla CLI exceeded its time limit");
             }
+            if (benchmark) { periods.ended(run.periodToken, System.nanoTime(), clock.instant(), true); }
             awaitReader(stdoutTask);
             awaitReader(stderrTask);
             checkControl(run);
@@ -215,7 +240,9 @@ public final class SpeedTestService implements AutoCloseable {
         } catch (IOException failure) {
             throw new SpeedTestException(ErrorCode.INTERNAL_ERROR, "Could not close the CLI input stream", failure);
         } finally {
-            if (!terminate(process)) { run.cleanupFailed.set(true); }
+            boolean terminated = terminate(process);
+            if (!terminated) { run.cleanupFailed.set(true); }
+            if (benchmark) { periods.ended(run.periodToken, System.nanoTime(), clock.instant(), terminated); }
             closeStreams(process);
             if (stdoutTask != null) { stdoutTask.cancel(true); }
             if (stderrTask != null) { stderrTask.cancel(true); }
@@ -343,13 +370,16 @@ public final class SpeedTestService implements AutoCloseable {
     private static final class Run {
         final long id;
         final long deadline;
+        final long periodToken;
         final CompletableFuture<SpeedTestState> completion = new CompletableFuture<>();
         final AtomicBoolean cancelled = new AtomicBoolean();
         final AtomicBoolean outputExceeded = new AtomicBoolean();
         final AtomicBoolean termsRequired = new AtomicBoolean();
         final AtomicBoolean cleanupFailed = new AtomicBoolean();
         final AtomicReference<Process> process = new AtomicReference<>();
-        Run(long id, long deadline) { this.id = id; this.deadline = deadline; }
+        Run(long id, long deadline, long periodToken) {
+            this.id = id; this.deadline = deadline; this.periodToken = periodToken;
+        }
     }
 
     private static final class Capture {

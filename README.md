@@ -1,10 +1,11 @@
 # NetPulse
 
 A fresh JavaFX desktop application for a college project. This implementation
-currently contains **Phases 1-5**: the Maven/JavaFX foundation, independent OSHI
+currently contains **Phases 1-6**: the Maven/JavaFX foundation, independent OSHI
 monitoring, session totals, rolling traffic data, an asynchronous official
-Ookla CLI service, and the functional JavaFX dashboard. No previous NetPulse
-source was inspected or reused. The traffic chart remains reserved for Phase 6.
+Ookla CLI service, and the functional JavaFX dashboard with a live 60-second
+traffic graph and CLI execution-period shading. No previous NetPulse source was
+inspected or reused.
 
 ## Requirements
 
@@ -30,7 +31,9 @@ javac -version
 ```
 
 The **NetPulse** window displays live download/upload gauges in Mbps and MB/s,
-exact-counter session totals, adapter details, and an Ookla benchmark panel.
+exact-counter session totals, adapter details, a 60-second OSHI traffic graph,
+and an Ookla benchmark panel. Missing readings and adapter changes break the
+graph lines. Shading marks the entire CLI process, not individual transfers.
 Link status describes the adapter; it does not claim verified internet access.
 The layout stacks its columns and scrolls at narrower sizes (minimum 640 × 520).
 
@@ -46,6 +49,8 @@ before the JVM exits. Startup failures propagate to the launcher.
 
 See [Phase 5 implementation and verification](docs/phase5-verification.md) for
 data flow, the changed files, desktop checks, screenshots, and limitations.
+See [Phase 6 graph and correlation verification](docs/phase6-verification.md) for
+graph semantics, process timing, tests, Windows checks and before/during/after images.
 
 `target/netpulse-1.0.0-SNAPSHOT.jar` is the ordinary Maven application JAR, not a
 self-contained executable or installer. Use `javafx:run` to launch with the required
@@ -99,6 +104,7 @@ src/main/java/com/netpulse/
     SpeedTestExecutableLocator.java
     SpeedTestJsonParser.java
     SpeedTestException.java
+    SpeedTestPeriodTracker.java
   model/                    Immutable metadata, measurements, totals, and history
   ui/
     NetPulseApplication.java
@@ -106,6 +112,8 @@ src/main/java/com/netpulse/
     SpeedometerView.java
     GaugeScale.java
     DashboardPresentation.java
+    TrafficChartView.java
+    TrafficChartData.java
   util/SpeedFormatter.java
 src/main/resources/
   fxml/FxDashboardView.fxml
@@ -120,6 +128,7 @@ src/test/java/com/netpulse/
   util/SpeedFormatterTest.java
 scripts/verify-dashboard.ps1   Opt-in Windows UI checks (synthetic by default)
 docs/phase5-verification.md
+docs/phase6-verification.md
 ```
 
 The application is a single Maven module and does not need a JPMS module
@@ -564,5 +573,5 @@ References: [official CLI page](https://www.speedtest.net/apps/cli),
 [terms](https://www.speedtest.net/about/terms),
 [privacy policy](https://www.speedtest.net/about/privacy).
 
-Phase 5 is complete; see its verification report linked above. Phase 6 requires
+Phase 6 is complete; see its verification report linked above. Phase 7 requires
 separate approval and has not been implemented.

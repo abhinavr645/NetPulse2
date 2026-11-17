@@ -2,6 +2,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import com.netpulse.ui.SpeedometerView?>
+<?import com.netpulse.ui.TrafficChartView?>
 <BorderPane xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.netpulse.ui.FxDashboardController" stylesheets="@../css/styles.css" styleClass="dashboard" focusTraversable="true">
     <top>
@@ -35,6 +36,7 @@
                                 </VBox>
                             </FlowPane>
                             <Label fx:id="monitoringStatus" text="Waiting for measurements" styleClass="muted" wrapText="true"/>
+                            <TrafficChartView fx:id="trafficChart"/>
                             <HBox spacing="18" styleClass="card,session-card">
                                 <VBox spacing="5" HBox.hgrow="ALWAYS" minWidth="0"><Label text="SESSION DOWNLOADED" styleClass="eyebrow"/><Label fx:id="sessionDownload" text="0.00 MB" styleClass="total,download-ink" wrapText="true"/></VBox>
                                 <VBox spacing="5" HBox.hgrow="ALWAYS" minWidth="0"><Label text="SESSION UPLOADED" styleClass="eyebrow"/><Label fx:id="sessionUpload" text="0.00 MB" styleClass="total,upload-ink" wrapText="true"/></VBox>
@@ -48,10 +50,6 @@
                                     <Label fx:id="interfaceName" text="—" wrapText="true" GridPane.rowIndex="1"/><Label fx:id="macAddress" text="—" wrapText="true" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
                                 </GridPane>
                                 <Label text="Link status describes the adapter. Internet connectivity is not verified." styleClass="fine-print" wrapText="true"/>
-                            </VBox>
-                            <VBox spacing="7" styleClass="graph-placeholder" alignment="CENTER_LEFT">
-                                <Label text="Traffic History" styleClass="section-title"/>
-                                <Label text="Coming in Phase 6" styleClass="muted"/>
                             </VBox>
                         </VBox>
                         <VBox fx:id="benchmarkColumn" spacing="10" styleClass="card,benchmark-card" minWidth="0">

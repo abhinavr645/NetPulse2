@@ -37,7 +37,7 @@
 .gauge-scale { -fx-text-fill: #91a1b7; -fx-font-size: 10px; }
 .total { -fx-font-size: 21px; -fx-font-weight: bold; }
 .adapter-name { -fx-font-size: 14px; }
-.graph-placeholder { -fx-padding: 18; -fx-background-color: #101926; -fx-background-radius: 12; -fx-border-color: #2a394e; -fx-border-radius: 12; -fx-border-style: segments(5, 5); }
+.traffic-chart { -fx-padding: 0; }
 .benchmark-card { -fx-padding: 20; }
 .button { -fx-cursor: hand; -fx-background-color: #26354b; -fx-text-fill: #edf3fc; -fx-background-radius: 7; -fx-padding: 10 14; -fx-font-weight: bold; }
 .button:hover { -fx-background-color: #344760; }
