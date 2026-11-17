@@ -1,2 +1,2 @@
-/** Formatting and utility classes, reserved for future phases. */
+/** Presentation formatting using decimal network units. */
 package com.netpulse.util;

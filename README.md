@@ -1,9 +1,10 @@
 # NetPulse
 
 A fresh JavaFX desktop application for a college project. This implementation
-currently contains **Phases 1-4**: the Maven/JavaFX foundation, independent OSHI
-monitoring, session totals, rolling traffic data, and an asynchronous official
-Ookla CLI service. No previous NetPulse source was inspected or reused.
+currently contains **Phases 1-5**: the Maven/JavaFX foundation, independent OSHI
+monitoring, session totals, rolling traffic data, an asynchronous official
+Ookla CLI service, and the functional JavaFX dashboard. No previous NetPulse
+source was inspected or reused. The traffic chart remains reserved for Phase 6.
 
 ## Requirements
 
@@ -28,19 +29,23 @@ javac -version
 .\mvnw.cmd javafx:run
 ```
 
-The application opens a window titled **NetPulse** with a dark dashboard, an
-**Application ready** status, and a monitoring placeholder. Resize the window
-normally. Close it with the title-bar close button; JavaFX and the Maven launch
-process then exit naturally. The status describes application startup, not network
-connectivity.
+The **NetPulse** window displays live download/upload gauges in Mbps and MB/s,
+exact-counter session totals, adapter details, and an Ookla benchmark panel.
+Link status describes the adapter; it does not claim verified internet access.
+The layout stacks its columns and scrolls at narrower sizes (minimum 640 × 520).
 
-The application now starts one background network-monitor worker after displaying
-the window. No speeds or totals are displayed yet: the approved dashboard shell
-is preserved while the engine maintains the data. An idle speed-test service is
-also owned by the application, but there are no speed-test controls yet and no
-benchmark runs automatically. Closing the window stops monitoring and closes the
-speed-test service without waiting on the JavaFX thread.
-Startup failures propagate to the launcher instead of being hidden.
+Monitoring starts in the background after the window opens. Use **Start Speed
+Test** to request a benchmark, and **Cancel** to stop it. If the official CLI is
+not on PATH, use **Choose CLI…** to select its existing `speedtest.exe`. This
+selection lasts for the current application session only. NetPulse does not
+download the CLI or accept its terms. No benchmark runs automatically.
+
+Closing the window stops UI timers/animations and closes both services without
+waiting on the JavaFX thread. Active CLI cleanup completes on its owned worker
+before the JVM exits. Startup failures propagate to the launcher.
+
+See [Phase 5 implementation and verification](docs/phase5-verification.md) for
+data flow, the changed files, desktop checks, screenshots, and limitations.
 
 `target/netpulse-1.0.0-SNAPSHOT.jar` is the ordinary Maven application JAR, not a
 self-contained executable or installer. Use `javafx:run` to launch with the required
@@ -98,7 +103,10 @@ src/main/java/com/netpulse/
   ui/
     NetPulseApplication.java
     FxDashboardController.java
-  util/                     Reserved formatting utilities
+    SpeedometerView.java
+    GaugeScale.java
+    DashboardPresentation.java
+  util/SpeedFormatter.java
 src/main/resources/
   fxml/FxDashboardView.fxml
   css/styles.css
@@ -108,11 +116,14 @@ src/test/java/com/netpulse/
   monitor/                  Synthetic service tests and manual OSHI check
   support/                  Synthetic adapter fixtures
   speedtest/                Parser, discovery, and controlled child-process tests
-  ui/DashboardResourcesTest.java
+  ui/                       Resources, gauge scale, and presentation tests
+  util/SpeedFormatterTest.java
+scripts/verify-dashboard.ps1   Opt-in Windows UI checks (synthetic by default)
+docs/phase5-verification.md
 ```
 
-Only `util` remains a reserved package. The application is a single Maven module
-and does not need a JPMS module descriptor or a dependency-injection framework.
+The application is a single Maven module and does not need a JPMS module
+descriptor or a dependency-injection framework.
 
 ## Phase 2 monitoring engine
 
@@ -535,8 +546,9 @@ Added production files: `SpeedTestService`, `SpeedTestExecutableLocator`,
 Application changes only create the idle service and close it during shutdown.
 Tests add parser/discovery/service cases, controlled execution/shutdown helpers,
 and `src/test/resources/speedtest/synthetic-result.json` with invented values and
-verified field names. There are no dashboard controls, gauges, charts, graph
-shading, execution-interval visualization, persistent results, or automatic benchmarks.
+verified field names. At Phase 4 completion, dashboard integration remained for
+Phase 5. Charts, graph shading, execution-interval visualization, persistent
+results, and automatic benchmarks remain outside the implemented scope.
 
 The official manual limits use to personal, non-commercial use through a CLI on a
 personal computer and refers to Ookla's EULA, terms, and privacy policy. Current
@@ -552,4 +564,5 @@ References: [official CLI page](https://www.speedtest.net/apps/cli),
 [terms](https://www.speedtest.net/about/terms),
 [privacy policy](https://www.speedtest.net/about/privacy).
 
-Phase 4 is complete; Phase 5 has not started and requires separate approval.
+Phase 5 is complete; see its verification report linked above. Phase 6 requires
+separate approval and has not been implemented.

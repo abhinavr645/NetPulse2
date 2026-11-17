@@ -17,27 +17,44 @@ import javafx.stage.Stage;
 public final class NetPulseApplication extends Application {
     private NetworkMonitorService monitor;
     private SpeedTestService speedTests;
+    private FxDashboardController dashboard;
 
     @Override
     public void start(Stage stage) throws IOException {
         URL view = Objects.requireNonNull(
                 getClass().getResource("/fxml/FxDashboardView.fxml"),
                 "The dashboard FXML resource is missing.");
-        Parent root = new FXMLLoader(view).load();
+        monitor = new NetworkMonitorService(new OshiNetworkStatsProvider());
+        speedTests = new SpeedTestService();
+        FXMLLoader loader = new FXMLLoader(view);
+        dashboard = new FxDashboardController(monitor, speedTests);
+        loader.setControllerFactory(type -> {
+            if (type != FxDashboardController.class) { throw new IllegalArgumentException("Unexpected controller: " + type); }
+            return dashboard;
+        });
+        Parent root;
+        try {
+            root = loader.load();
+        } catch (IOException | RuntimeException failure) {
+            speedTests.close();
+            monitor.close();
+            throw failure;
+        }
 
         stage.setTitle("NetPulse");
-        stage.setScene(new Scene(root, 1040, 720));
+        stage.setScene(new Scene(root, 1120, 784));
         stage.setMinWidth(640);
         stage.setMinHeight(520);
         stage.show();
-        monitor = new NetworkMonitorService(new OshiNetworkStatsProvider());
         monitor.start();
-        // Idle until a future dashboard explicitly requests a test; no CLI discovery here.
-        speedTests = new SpeedTestService();
     }
 
     @Override
     public void stop() {
+        if (dashboard != null) {
+            dashboard.close();
+            return;
+        }
         if (speedTests != null) {
             speedTests.close();
         }
