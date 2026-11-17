@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+
+<BorderPane xmlns="http://javafx.com/javafx/25.0.1"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.netpulse.ui.FxDashboardController"
+            stylesheets="@../css/styles.css"
+            styleClass="dashboard">
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="14" styleClass="app-header">
+            <Label text="N" styleClass="brand-mark" alignment="CENTER"
+                   minWidth="44" prefWidth="44" minHeight="44" prefHeight="44" />
+            <VBox spacing="2">
+                <Label text="NetPulse" styleClass="brand-name" />
+                <Label text="NETWORK MONITOR" styleClass="brand-caption" />
+            </VBox>
+            <Region HBox.hgrow="ALWAYS" />
+            <HBox alignment="CENTER" spacing="8" styleClass="status-badge">
+                <Circle radius="3.5" styleClass="status-dot" />
+                <Label fx:id="applicationStatus" text="Starting" styleClass="status-text" />
+            </HBox>
+        </HBox>
+    </top>
+    <center>
+        <VBox spacing="24" styleClass="main-content">
+            <VBox spacing="8">
+                <Label text="Your network, at a glance." styleClass="page-heading" wrapText="true" />
+                <Label text="A simple workspace for understanding your connection."
+                       styleClass="page-description" wrapText="true" />
+            </VBox>
+            <StackPane styleClass="workspace-placeholder" VBox.vgrow="ALWAYS" minHeight="200">
+                <padding><Insets top="32" right="32" bottom="32" left="32" /></padding>
+                <VBox alignment="CENTER" spacing="14" maxWidth="420">
+                    <StackPane styleClass="placeholder-icon" minHeight="64" maxHeight="64"
+                               minWidth="64" maxWidth="64">
+                        <Circle radius="13" styleClass="placeholder-ring" />
+                        <Circle radius="4" styleClass="placeholder-center" />
+                    </StackPane>
+                    <Label text="Monitoring workspace" styleClass="placeholder-heading" wrapText="true" />
+                    <Label text="This space is reserved for live network monitoring."
+                           styleClass="placeholder-description" wrapText="true"
+                           alignment="CENTER" textAlignment="CENTER" />
+                </VBox>
+            </StackPane>
+        </VBox>
+    </center>
+    <bottom>
+        <HBox alignment="CENTER_LEFT" styleClass="app-footer">
+            <Label text="NetPulse" styleClass="footer-brand" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label text="Desktop workspace" styleClass="footer-caption" />
+        </HBox>
+    </bottom>
+</BorderPane>

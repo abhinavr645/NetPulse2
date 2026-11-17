@@ -1,0 +1,114 @@
+.root {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 14px;
+    -fx-background-color: #0c111b;
+    -fx-text-fill: #edf2f7;
+}
+
+.label {
+    -fx-text-fill: #edf2f7;
+}
+
+.app-header {
+    -fx-padding: 25 32;
+    -fx-background-color: #101722;
+    -fx-border-color: transparent transparent #202c3b transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.brand-mark {
+    -fx-background-color: #183d3b;
+    -fx-background-radius: 13;
+    -fx-text-fill: #66dfc5;
+    -fx-font-size: 25px;
+    -fx-font-weight: bold;
+}
+
+.brand-name {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+}
+
+.brand-caption {
+    -fx-font-size: 10px;
+    -fx-text-fill: #8b9bb0;
+}
+
+.status-badge {
+    -fx-background-color: #162930;
+    -fx-background-radius: 20;
+    -fx-padding: 8 13;
+}
+
+.status-dot {
+    -fx-fill: #66dfc5;
+}
+
+.status-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: #a7dfd4;
+}
+
+.main-content {
+    -fx-padding: 34 32 28 32;
+}
+
+.page-heading {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+.page-description {
+    -fx-text-fill: #95a4b8;
+}
+
+.workspace-placeholder {
+    -fx-background-color: #101823;
+    -fx-background-radius: 18;
+    -fx-border-color: #2a394b;
+    -fx-border-width: 1;
+    -fx-border-radius: 18;
+    -fx-border-style: segments(6, 6);
+}
+
+.placeholder-icon {
+    -fx-background-color: #152c31;
+    -fx-background-radius: 20;
+}
+
+.placeholder-ring {
+    -fx-fill: transparent;
+    -fx-stroke: #5ed6be;
+    -fx-stroke-width: 2;
+}
+
+.placeholder-center {
+    -fx-fill: #5ed6be;
+}
+
+.placeholder-heading {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.placeholder-description {
+    -fx-text-fill: #95a4b8;
+    -fx-line-spacing: 3;
+}
+
+.app-footer {
+    -fx-padding: 17 32;
+    -fx-border-color: #202c3b transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.footer-brand {
+    -fx-text-fill: #95a4b8;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+}
+
+.footer-caption {
+    -fx-text-fill: #718298;
+    -fx-font-size: 12px;
+}
