@@ -23,9 +23,10 @@
                     <VBox spacing="4"><Label text="Your network, at a glance." styleClass="page-title"/>
                         <Label text="Live adapter traffic and an on-demand internet benchmark." styleClass="muted" wrapText="true"/>
                     </VBox>
-                    <FlowPane fx:id="columns" hgap="20" vgap="20" alignment="TOP_LEFT">
-                        <VBox fx:id="monitoringColumn" spacing="12" minWidth="0">
-                            <FlowPane hgap="16" vgap="16">
+                    <!-- Wrap columns at narrow widths; keep each column at its own content height. -->
+                    <FlowPane fx:id="columns" hgap="20" vgap="20" alignment="TOP_LEFT" rowValignment="TOP">
+                        <VBox fx:id="monitoringColumn" spacing="12" minWidth="0" maxHeight="-Infinity">
+                            <HBox spacing="16">
                                 <VBox fx:id="downloadCard" spacing="5" minWidth="0" styleClass="card,download-card">
                                     <HBox alignment="CENTER_LEFT" spacing="8"><Label text="↓" styleClass="direction,download-ink"/><Label text="Download" styleClass="section-title"/><Region HBox.hgrow="ALWAYS"/><Label text="LIVE" styleClass="eyebrow"/></HBox>
                                     <SpeedometerView fx:id="downloadGauge"/>
@@ -34,7 +35,7 @@
                                     <HBox alignment="CENTER_LEFT" spacing="8"><Label text="↑" styleClass="direction,upload-ink"/><Label text="Upload" styleClass="section-title"/><Region HBox.hgrow="ALWAYS"/><Label text="LIVE" styleClass="eyebrow"/></HBox>
                                     <SpeedometerView fx:id="uploadGauge"/>
                                 </VBox>
-                            </FlowPane>
+                            </HBox>
                             <Label fx:id="monitoringStatus" text="Waiting for measurements" styleClass="muted" wrapText="true"/>
                             <TrafficChartView fx:id="trafficChart"/>
                             <HBox spacing="18" styleClass="card,session-card">
@@ -52,7 +53,7 @@
                                 <Label text="Link status describes the adapter. Internet connectivity is not verified." styleClass="fine-print" wrapText="true"/>
                             </VBox>
                         </VBox>
-                        <VBox fx:id="benchmarkColumn" spacing="10" styleClass="card,benchmark-card" minWidth="0">
+                        <VBox fx:id="benchmarkColumn" spacing="10" styleClass="card,benchmark-card" minWidth="0" maxHeight="-Infinity">
                             <VBox spacing="5"><Label text="Ookla benchmark" styleClass="panel-title"/><Label text="Measure internet speed with the official CLI." styleClass="muted" wrapText="true"/></VBox>
                             <HBox spacing="9"><Button fx:id="startTest" text="Start Speed Test" onAction="#startSpeedTest" styleClass="primary-button" HBox.hgrow="ALWAYS" maxWidth="Infinity"/><Button fx:id="cancelTest" text="Cancel" onAction="#cancelSpeedTest" disable="true"/></HBox>
                             <HBox spacing="9" alignment="CENTER_LEFT"><ProgressIndicator fx:id="testProgress" progress="-1" visible="false" managed="false" prefWidth="18" prefHeight="18" minWidth="18" minHeight="18" maxWidth="18" maxHeight="18"/><Label fx:id="testStatus" text="Ready to run an Ookla speed test" wrapText="true" styleClass="test-status" HBox.hgrow="ALWAYS" minWidth="0"/></HBox>

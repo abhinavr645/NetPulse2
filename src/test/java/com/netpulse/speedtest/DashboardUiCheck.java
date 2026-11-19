@@ -164,6 +164,7 @@ public final class DashboardUiCheck {
                 check(root.lookup("#benchmarkColumn").getBoundsInParent().getMinY()
                         == root.lookup("#monitoringColumn").getBoundsInParent().getMinY(), "Wide window should show both columns side by side");
                 check(!button("startTest").isDisabled() && button("cancelTest").isDisabled(), "Idle controls");
+                verifyCompactLayout();
                 return null;
             });
             networkMode.set(1);
@@ -212,6 +213,7 @@ public final class DashboardUiCheck {
                 check(label("packetLoss").equals("0.50%"), "Packet loss");
                 check(label("server").contains("Synthetic"), "Server");
                 check(!label("completedAt").equals("—"), "Completion time");
+                verifyCompactLayout();
                 return null;
             });
             screenshot("phase5-synthetic-result");
@@ -253,12 +255,18 @@ public final class DashboardUiCheck {
                 ScrollPane scroll = (ScrollPane) root.lookup("#dashboardScroll");
                 check(root.lookup("#benchmarkColumn").getBoundsInParent().getMinY()
                         > root.lookup("#monitoringColumn").getBoundsInParent().getMinY(), "Narrow window stacks columns");
+                verifyCompactLayout();
                 scroll.setVvalue(1);
                 return null;
             });
             Thread.sleep(400);
             screenshot("phase5-minimum-bottom");
             fx(() -> { stage.setWidth(1136); stage.setHeight(800); ((ScrollPane) root.lookup("#dashboardScroll")).setVvalue(0); return null; });
+            Thread.sleep(350);
+            fx(() -> { verifyCompactLayout(); return null; });
+            screenshot("dashboard-layout-top");
+            fx(() -> { ((ScrollPane) root.lookup("#dashboardScroll")).setVvalue(1); return null; });
+            screenshot("dashboard-layout-bottom");
             // Close the window while a real controlled child is active to verify controller cleanup.
             fireStart();
             await(() -> tests.latestState().phase() == Phase.RUNNING, 5);
@@ -305,6 +313,20 @@ public final class DashboardUiCheck {
         }
 
         private TrafficChartView chart() { return (TrafficChartView) root.lookup("#trafficChart"); }
+
+        private void verifyCompactLayout() {
+            var benchmark = (javafx.scene.layout.Region) root.lookup("#benchmarkColumn");
+            check(Math.abs(benchmark.getHeight() - benchmark.prefHeight(benchmark.getWidth())) <= 2,
+                    "Benchmark card must fit its content instead of stretching to the other column");
+            var columns = (javafx.scene.layout.Region) root.lookup("#columns");
+            double bottom = Math.max(root.lookup("#monitoringColumn").getBoundsInParent().getMaxY(),
+                    benchmark.getBoundsInParent().getMaxY());
+            check(columns.getHeight() - bottom <= 2, "Columns must not reserve empty rows below their contents");
+            var gauges = (javafx.scene.layout.Region) root.lookup("#downloadCard").getParent();
+            double cardHeight = Math.max(root.lookup("#downloadCard").getBoundsInParent().getMaxY(),
+                    root.lookup("#uploadCard").getBoundsInParent().getMaxY());
+            check(gauges.getHeight() - cardHeight <= 2, "Gauge row must not reserve a second wrapped row");
+        }
 
         private record ChartFixture(Stage window, TrafficChartView view) { }
 
