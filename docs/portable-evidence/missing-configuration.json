@@ -1,0 +1,5 @@
+﻿{
+    "exitCode":  2,
+    "stdout":  "ERROR: Required application files are missing from:\r\n\"C:\\Users\\abhin\\projects\\NetPulse\\target\\portable-verification\\8080e3bf090948e68957089fae2025e9\\Extracted copy \u0026 spaces\\Missing configuration test\\NetPulse\\app\"\r\nExtract the entire ZIP again. Do not move or delete individual package files.\r\nPress any key to continue . . . \r\n",
+    "stderr":  ""
+}

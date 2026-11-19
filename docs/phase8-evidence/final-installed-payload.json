@@ -1,0 +1,17 @@
+﻿{
+    "processId":  26384,
+    "executable":  "C:\\Users\\abhin\\AppData\\Local\\NetPulse\\runtime\\bin\\java.exe",
+    "bundledJvm":  "C:\\Users\\abhin\\AppData\\Local\\NetPulse\\runtime\\bin\\server\\jvm.dll",
+    "responding":  true,
+    "systemJavaOnPath":  false,
+    "javaHomeCleared":  true,
+    "sourceWorkingDirectoryUsed":  false,
+    "nativeLauncherUsed":  false,
+    "startMenuLaunchSucceeded":  false,
+    "cliExecutable":  "C:\\Users\\abhin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ookla.Speedtest.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\speedtest.exe",
+    "cliCommand":  "C:\\Users\\abhin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ookla.Speedtest.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\speedtest.exe --format=json",
+    "savedPathDiscovery":  true,
+    "manualFileDialogUsed":  true,
+    "closedNormally":  true,
+    "ownedCliChildrenRemaining":  0
+}

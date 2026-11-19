@@ -1,0 +1,10 @@
+﻿{
+    "parentProcessId":  11124,
+    "cliProcessId":  28340,
+    "executable":  "C:\\Users\\abhin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ookla.Speedtest.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\speedtest.exe",
+    "commandLine":  "C:\\Users\\abhin\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Ookla.Speedtest.CLI_Microsoft.Winget.Source_8wekyb3d8bbwe\\speedtest.exe --format=json",
+    "inheritedPath":  "Windows System32 only",
+    "savedWindowsPathFallback":  true,
+    "manualSelectionUsed":  false,
+    "installedShortcutLaunch":  false
+}

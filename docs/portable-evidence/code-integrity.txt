@@ -1,0 +1,17 @@
+
+
+TimeCreated : 19-11-2026 20:50:24
+Id          : 3077
+Message     : Code Integrity determined that a process (\Device\HarddiskVolume3\Windows\System32\cmd.exe) attempted to load 
+              \Device\HarddiskVolume3\Users\abhin\projects\NetPulse\target\portable-verification\8080e3bf090948e68957089fae2025e9\Extracted copy & spaces\NetPulse-1.0.0-Portable\NetPulse\NetPulse.exe that did not meet 
+              the Enterprise signing level requirements or violated code integrity policy (Policy ID:{0283ac0f-fff1-49ae-ada1-8a933130cad6}).
+
+TimeCreated : 19-11-2026 20:50:24
+Id          : 3033
+Message     : Code Integrity determined that a process (\Device\HarddiskVolume3\Windows\System32\cmd.exe) attempted to load 
+              \Device\HarddiskVolume3\Users\abhin\projects\NetPulse\target\portable-verification\8080e3bf090948e68957089fae2025e9\Extracted copy & spaces\NetPulse-1.0.0-Portable\NetPulse\NetPulse.exe that did not meet 
+              the Enterprise signing level requirements.
+
+
+
+

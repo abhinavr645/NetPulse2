@@ -1,0 +1,9 @@
+﻿{
+    "processId":  11124,
+    "executable":  "C:\\Users\\abhin\\projects\\NetPulse\\target\\packaging\\image\\NetPulse\\runtime\\bin\\java.exe",
+    "bundledJvm":  "C:\\Users\\abhin\\projects\\NetPulse\\target\\packaging\\image\\NetPulse\\runtime\\bin\\server\\jvm.dll",
+    "responding":  true,
+    "nativeLauncherUsed":  false,
+    "systemJavaOnPath":  false,
+    "javaHomeCleared":  true
+}

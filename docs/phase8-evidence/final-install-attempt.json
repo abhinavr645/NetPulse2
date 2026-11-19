@@ -1,0 +1,7 @@
+﻿{
+    "installer":  "C:\\Users\\abhin\\projects\\NetPulse\\target\\installer\\NetPulse-1.0.0.msi",
+    "productCode":  "{1B4FC6E6-2FD8-3A3D-95E1-63D236F97019}",
+    "exitCode":  0,
+    "startMenuShortcut":  "C:\\Users\\abhin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\NetPulse\\NetPulse.lnk",
+    "desktopShortcut":  "C:\\Users\\abhin\\OneDrive\\Desktop\\NetPulse.lnk"
+}

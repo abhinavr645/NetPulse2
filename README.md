@@ -7,8 +7,11 @@ Ookla CLI service, and the functional JavaFX dashboard with a live 60-second
 traffic graph and CLI execution-period shading. No previous NetPulse source was
 inspected or reused. Phase 7 adds integration/reliability verification and a
 focused fix for cleanup after an aborted FXML startup.
+Phase 8 adds a bundled-runtime Windows image and an MSI built with installed WiX.
+Installation/uninstallation passed; native launch is blocked by this host's
+Application Control policy. See the Phase 8 report before treating it as deployable.
 
-## Requirements
+## Development requirements
 
 - Windows 11, x64, with an interactive desktop for the GUI.
 - JDK 25; set `JAVA_HOME` to the JDK directory and put its `bin` directory on `PATH`.
@@ -66,6 +69,52 @@ See [Phase 6 graph and correlation verification](docs/phase6-verification.md) fo
 graph semantics, process timing, tests, Windows checks and before/during/after images.
 See [Phase 7 integration and reliability report](docs/phase7-verification.md) for
 the final clean build, prolonged-run measurements, real benchmark and readiness limits.
+
+## Windows application image and MSI
+
+Build on Windows with JDK 25 and installed matching WiX 3.x `candle.exe`/`light.exe`:
+
+```powershell
+.\scripts\package-windows.ps1 -Stage All
+# Or build the two stages separately:
+.\scripts\package-windows.ps1 -Stage Image
+.\scripts\package-windows.ps1 -Stage Installer
+```
+
+The detector finds WiX outside the inherited PATH and temporarily exposes it to
+jpackage. Use `-WixPath <installed-bin-directory>` for a nonstandard installation.
+No toolset is downloaded. Icon source and regeneration are under
+`src/main/resources/icons/netpulse.svg` and `scripts/new-netpulse-icon.ps1`.
+
+Outputs are `target/packaging/image/NetPulse/` and
+`target/installer/NetPulse-1.0.0.msi`. The package includes its own Java/JavaFX
+runtime; end users do not need the development JDK. Ookla is independently installed
+and is never bundled. The locator can read saved Windows PATH when a shortcut's
+inherited PATH is stale, while retaining manual selection.
+
+[Phase 8 verification](docs/phase8-verification.md) records the actual generated MSI,
+tool versions, installation/removal evidence and native-launch policy failures.
+Successful installed-shortcut launch and clean-machine compatibility are not claimed.
+
+## Portable ZIP
+
+Create a portable release from the existing application image and MSI:
+
+```powershell
+.\scripts\package-portable.ps1
+```
+
+Both artifacts are retained in `target/release/`:
+`NetPulse-1.0.0-Portable.zip` and `NetPulse-1.0.0.msi`. The original MSI under
+`target/installer/` is preserved. Extract the complete ZIP and run
+`Launch-NetPulse.cmd`; keep its adjacent `NetPulse/app` and `NetPulse/runtime`
+folders intact. No separately installed Java is required. Ookla CLI is not bundled.
+
+The wrapper uses its own location and does not bypass Windows protections or
+suppress warnings. Windows may warn about or block the unsigned executable.
+[Portable verification](docs/portable-verification.md) records the successful
+extraction/hash and missing-file checks, and the Device Guard launch block that
+prevented portable GUI verification on this machine.
 
 `target/netpulse-1.0.0-SNAPSHOT.jar` is the ordinary Maven application JAR, not a
 self-contained executable or installer. Use `javafx:run` to launch with the required
@@ -588,5 +637,6 @@ References: [official CLI page](https://www.speedtest.net/apps/cli),
 [terms](https://www.speedtest.net/about/terms),
 [privacy policy](https://www.speedtest.net/about/privacy).
 
-Phase 7 is complete; see its verification report linked above. Packaging,
-distribution and further phases have not started.
+Phase 8 packaging artifacts have been created; native-launch verification remains
+blocked as documented in its report. A portable ZIP has also been created and
+checked as documented above. Further phases have not started.

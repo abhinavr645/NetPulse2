@@ -1,0 +1,14 @@
+﻿{
+    "zip":  "C:\\Users\\abhin\\projects\\NetPulse\\target\\release\\NetPulse-1.0.0-Portable.zip",
+    "zipBytes":  52791546,
+    "zipSHA256":  "28926A872A7BA9B18DFA9137227271F657D8BF59288648B6B0A88E7D428B1A5F",
+    "msi":  "C:\\Users\\abhin\\projects\\NetPulse\\target\\release\\NetPulse-1.0.0.msi",
+    "msiSHA256":  "1DE274255697C66BCFA960CFFD46D8EC6661E0F53634DDD2C57BF636A81F19B3",
+    "extractionDirectory":  "C:\\Users\\abhin\\projects\\NetPulse\\target\\portable-verification\\8080e3bf090948e68957089fae2025e9\\Extracted copy \u0026 spaces\\NetPulse-1.0.0-Portable",
+    "imageFileCount":  233,
+    "allImageHashesMatched":  true,
+    "allSourceDirectoriesRetained":  true,
+    "sourceDirectoryCount":  35,
+    "archiveFileCount":  235,
+    "ooklaIncluded":  false
+}

@@ -11,6 +11,7 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 
 /** JavaFX entry point for the NetPulse desktop application. */
@@ -42,6 +43,8 @@ public final class NetPulseApplication extends Application {
         }
 
         stage.setTitle("NetPulse");
+        stage.getIcons().add(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/netpulse.png"),
+                "The application icon is missing.")));
         stage.setScene(new Scene(root, 1120, 784));
         stage.setMinWidth(640);
         stage.setMinHeight(520);

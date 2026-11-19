@@ -1,0 +1,10 @@
+﻿{
+    "msiBytes":  54158216,
+    "msiSHA256":  "1DE274255697C66BCFA960CFFD46D8EC6661E0F53634DDD2C57BF636A81F19B3",
+    "imageBytes":  72029449,
+    "imageFiles":  233,
+    "iconCount":  7,
+    "resourcesVerified":  true,
+    "testDependenciesIncluded":  false,
+    "ooklaIncluded":  false
+}

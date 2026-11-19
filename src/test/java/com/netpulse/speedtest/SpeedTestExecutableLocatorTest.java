@@ -97,4 +97,29 @@ class SpeedTestExecutableLocatorTest {
     }
 
     private static Path pe(Path path) throws Exception { return Files.write(path, new byte[] {'M', 'Z', 0, 0}); }
+
+    @Test void staleInheritedPathFallsBackToCurrentSavedWindowsPath() throws Exception {
+        Path saved = Files.createDirectories(directory.resolve("new Winget PATH directory"));
+        Path executable = pe(saved.resolve("speedtest.exe"));
+        assertEquals(executable.toRealPath(), new SpeedTestExecutableLocator(Optional.empty(),
+                directory.resolve("old environment").toString(), saved::toString).locate());
+    }
+
+    @Test void workingInheritedPathAndExplicitSelectionDoNotReadSavedEnvironment() throws Exception {
+        Path executable = pe(directory.resolve("speedtest.exe"));
+        java.util.function.Supplier<String> forbidden = () -> { throw new AssertionError("Fallback was unnecessary"); };
+        assertEquals(executable.toRealPath(), new SpeedTestExecutableLocator(Optional.empty(), directory.toString(), forbidden).locate());
+        assertEquals(executable.toRealPath(), new SpeedTestExecutableLocator(Optional.of(executable), "", forbidden).locate());
+    }
+
+    @Test void invalidInheritedCandidateCanUseSavedPathAndMissingCliStillReportsAnError() throws Exception {
+        Files.writeString(directory.resolve("speedtest.exe"), "invalid");
+        Path saved = Files.createDirectories(directory.resolve("saved"));
+        Path executable = pe(saved.resolve("speedtest.exe"));
+        assertEquals(executable.toRealPath(), new SpeedTestExecutableLocator(Optional.empty(), directory.toString(), saved::toString).locate());
+        assertEquals(ErrorCode.NOT_FOUND, assertThrows(SpeedTestException.class, () -> new SpeedTestExecutableLocator(
+                Optional.empty(), "", () -> directory.resolve("missing").toString()).locate()).code());
+        assertEquals(ErrorCode.INVALID_EXECUTABLE, assertThrows(SpeedTestException.class, () -> new SpeedTestExecutableLocator(
+                Optional.empty(), directory.toString(), () -> "").locate()).code());
+    }
 }

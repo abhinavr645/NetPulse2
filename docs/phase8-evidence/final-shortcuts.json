@@ -1,0 +1,12 @@
+﻿{
+    "startMenuShortcut":  "C:\\Users\\abhin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\NetPulse\\NetPulse.lnk",
+    "startMenuExists":  true,
+    "desktopShortcut":  "C:\\Users\\abhin\\OneDrive\\Desktop\\NetPulse.lnk",
+    "desktopExists":  true,
+    "target":  "C:\\Users\\abhin\\AppData\\Local\\NetPulse\\NetPulse.exe",
+    "workingDirectory":  "C:\\Users\\abhin\\AppData\\Local\\NetPulse\\",
+    "arguments":  "",
+    "icon":  ",0",
+    "installedRuntimeExists":  true,
+    "devPathReferenced":  false
+}

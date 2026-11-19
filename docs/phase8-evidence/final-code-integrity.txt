@@ -1,0 +1,38 @@
+
+
+TimeCreated : 19-11-2026 20:32:04
+Id          : 3077
+Message     : Code Integrity determined that a process (\Device\HarddiskVolume3\Windows\System32\WindowsPowerShell\v1.0\powershell.exe) attempted to load 
+              \Device\HarddiskVolume3\Users\abhin\AppData\Local\NetPulse\NetPulse.exe that did not meet the Enterprise signing level requirements or violated code integrity policy (Policy 
+              ID:{0283ac0f-fff1-49ae-ada1-8a933130cad6}).
+
+TimeCreated : 19-11-2026 20:32:04
+Id          : 3033
+Message     : Code Integrity determined that a process (\Device\HarddiskVolume3\Windows\System32\WindowsPowerShell\v1.0\powershell.exe) attempted to load 
+              \Device\HarddiskVolume3\Users\abhin\AppData\Local\NetPulse\NetPulse.exe that did not meet the Enterprise signing level requirements.
+
+TimeCreated : 19-11-2026 20:31:06
+Id          : 3077
+Message     : Code Integrity determined that a process (\Device\HarddiskVolume3\Windows\System32\WindowsPowerShell\v1.0\powershell.exe) attempted to load 
+              \Device\HarddiskVolume3\Users\abhin\AppData\Local\NetPulse\NetPulse.exe that did not meet the Enterprise signing level requirements or violated code integrity policy (Policy 
+              ID:{0283ac0f-fff1-49ae-ada1-8a933130cad6}).
+
+TimeCreated : 19-11-2026 20:31:06
+Id          : 3033
+Message     : Code Integrity determined that a process (\Device\HarddiskVolume3\Windows\System32\WindowsPowerShell\v1.0\powershell.exe) attempted to load 
+              \Device\HarddiskVolume3\Users\abhin\AppData\Local\NetPulse\NetPulse.exe that did not meet the Enterprise signing level requirements.
+
+TimeCreated : 19-11-2026 20:29:35
+Id          : 3077
+Message     : Code Integrity determined that a process (\Device\HarddiskVolume3\Windows\System32\WindowsPowerShell\v1.0\powershell.exe) attempted to load 
+              \Device\HarddiskVolume3\Users\abhin\projects\NetPulse\target\packaging\image\NetPulse\NetPulse.exe that did not meet the Enterprise signing level requirements or violated code integrity policy (Policy 
+              ID:{0283ac0f-fff1-49ae-ada1-8a933130cad6}).
+
+TimeCreated : 19-11-2026 20:29:35
+Id          : 3033
+Message     : Code Integrity determined that a process (\Device\HarddiskVolume3\Windows\System32\WindowsPowerShell\v1.0\powershell.exe) attempted to load 
+              \Device\HarddiskVolume3\Users\abhin\projects\NetPulse\target\packaging\image\NetPulse\NetPulse.exe that did not meet the Enterprise signing level requirements.
+
+
+
+

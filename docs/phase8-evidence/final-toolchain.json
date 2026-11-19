@@ -1,0 +1,8 @@
+﻿{
+    "directory":  "C:\\Program Files (x86)\\WiX Toolset v3.14\\bin",
+    "candleVersion":  "3.14.1.8722",
+    "lightVersion":  "3.14.1.8722",
+    "jpackage":  "25.0.5",
+    "installedToolsetUsed":  true,
+    "toolsetDownloaded":  false
+}

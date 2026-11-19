@@ -1,0 +1,27 @@
+﻿{
+    "missingApp":  {
+                       "exitCode":  2,
+                       "stdout":  "ERROR: NetPulse.exe was not found:\r\n\"C:\\Users\\abhin\\projects\\NetPulse\\target\\portable-verification\\8080e3bf090948e68957089fae2025e9\\Extracted copy \u0026 spaces\\Missing app test\\NetPulse\\NetPulse.exe\"\r\nExtract the entire portable ZIP before launching. Keep this launcher beside the NetPulse folder.\r\nPress any key to continue . . . \r\n",
+                       "stderr":  "",
+                       "workingDirectory":  "C:\\WINDOWS\\System32",
+                       "javaHomeCleared":  true,
+                       "systemJavaOnPath":  false
+                   },
+    "missingRuntime":  {
+                           "exitCode":  2,
+                           "stdout":  "ERROR: The bundled Java runtime is incomplete or missing:\r\n\"C:\\Users\\abhin\\projects\\NetPulse\\target\\portable-verification\\8080e3bf090948e68957089fae2025e9\\Extracted copy \u0026 spaces\\Missing runtime test\\NetPulse\\runtime\"\r\nExtract the entire ZIP again. Installing a separate Java runtime is not required.\r\nPress any key to continue . . . \r\n",
+                           "stderr":  "",
+                           "workingDirectory":  "C:\\WINDOWS\\System32",
+                           "javaHomeCleared":  true,
+                           "systemJavaOnPath":  false
+                       },
+    "completePackage":  {
+                            "exitCode":  4551,
+                            "stdout":  "ERROR: Windows could not start NetPulse. Launcher error: 1073751882\r\nWindows may have blocked the unsigned application. See README.txt and the Windows error message.\r\nThis convenience launcher does not change security settings or bypass application control.\r\nPress any key to continue . . . \r\n",
+                            "stderr":  "\u0027C:\\Users\\abhin\\projects\\NetPulse\\target\\portable-verification\\8080e3bf090948e68957089fae2025e9\\Extracted copy \u0026 spaces\\NetPulse-1.0.0-Portable\\NetPulse\\NetPulse.exe\u0027 was blocked by your organization\u0027s Device Guard policy.\r\nContact your support person for more info.\r\n",
+                            "workingDirectory":  "C:\\WINDOWS\\System32",
+                            "javaHomeCleared":  true,
+                            "systemJavaOnPath":  false
+                        },
+    "extractedLauncher":  "C:\\Users\\abhin\\projects\\NetPulse\\target\\portable-verification\\8080e3bf090948e68957089fae2025e9\\Extracted copy \u0026 spaces\\NetPulse-1.0.0-Portable\\Launch-NetPulse.cmd"
+}
