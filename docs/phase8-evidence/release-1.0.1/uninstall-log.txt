@@ -1,0 +1,12 @@
+﻿EXCERPT. Full log: latest-msi-uninstall.log
+MSI (s) (8C:38) [21:40:17:830]: Executing op: ShortcutRemove(Name=NetPulse)
+MSI (s) (8C:38) [21:40:18:934]: Executing op: ShortcutRemove(Name=NetPulse)
+Property(S): ProductVersion = 1.0.1
+MSI (s) (8C:38) [21:40:22:811]: Product: NetPulse -- Removal completed successfully.
+MSI (s) (8C:38) [21:40:22:812]: Windows Installer removed the product. Product Name: NetPulse. Product Version: 1.0.1. Product Language: 1033. Manufacturer: NetPulse College Project. Removal success or error status: 0.
+MSI (s) (8C:38) [21:40:22:817]: MainEngineThread is returning 0
+MSI (c) (D0:C4) [21:40:22:831]: MainEngineThread is returning 0
+MSI (c) (D0:C4) [21:40:22:829]: Decrementing counter to disable shutdown. If counter >= 0, shutdown will be denied.  Counter after decrement: -1
+MSI (c) (D0:C4) [21:40:22:831]: MainEngineThread is returning 0
+=== Verbose logging stopped: 19-11-2026  21:40:22 ===
+

@@ -1,0 +1,18 @@
+﻿{
+    "UpgradeCode":  "{3D17D0BF-80B7-4A9D-B49D-609F216B8E43}",
+    "JP_INSTALL_DESKTOP_SHORTCUT":  "1",
+    "JP_INSTALL_STARTMENU_SHORTCUT":  "1",
+    "WixUIRMOption":  "UseRM",
+    "WIXUI_INSTALLDIR":  "INSTALLDIR",
+    "ARPNOMODIFY":  "1",
+    "ARPPRODUCTICON":  "JpARPPRODUCTICON",
+    "Manufacturer":  "NetPulse College Project",
+    "ProductCode":  "{E0F509EB-2E97-38F0-B8C1-4716DCF7FB5E}",
+    "ProductLanguage":  "1033",
+    "ProductName":  "NetPulse",
+    "ProductVersion":  "1.0.1",
+    "DefaultUIFont":  "WixUI_Font_Normal",
+    "WixUI_Mode":  "InstallDir",
+    "ErrorDialog":  "ErrorDlg",
+    "SecureCustomProperties":  "JP_DOWNGRADABLE_FOUND;JP_UPGRADABLE_FOUND"
+}

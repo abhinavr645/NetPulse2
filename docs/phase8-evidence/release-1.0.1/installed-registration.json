@@ -1,0 +1,7 @@
+{
+    "PSPath":  "Microsoft.PowerShell.Core\\Registry::HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\{E0F509EB-2E97-38F0-B8C1-4716DCF7FB5E}",
+    "DisplayName":  "NetPulse",
+    "DisplayVersion":  "1.0.1",
+    "InstallLocation":  "C:\\Users\\abhin\\AppData\\Local\\NetPulse\\",
+    "UninstallString":  "MsiExec.exe /X{E0F509EB-2E97-38F0-B8C1-4716DCF7FB5E}"
+}

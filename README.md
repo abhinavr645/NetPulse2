@@ -72,6 +72,13 @@ the final clean build, prolonged-run measurements, real benchmark and readiness 
 
 ## Windows application image and MSI
 
+The latest MSI with the dashboard layout fix is
+`target/release/NetPulse-1.0.1.msi`; see the
+[1.0.1 rebuild report](docs/release-1.0.1-verification.md). The previous 1.0.0 MSI
+and portable ZIP are retained. Native launch on this host is still blocked by
+Windows Application Control. The original build instructions below use the
+script's default version; pass `-Version 1.0.1` to reproduce the latest MSI.
+
 Build on Windows with JDK 25 and installed matching WiX 3.x `candle.exe`/`light.exe`:
 
 ```powershell

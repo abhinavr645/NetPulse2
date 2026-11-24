@@ -1,0 +1,50 @@
+﻿{
+    "ExitCode":  0,
+    "InstallDirectoryRemoved":  true,
+    "ShortcutsRemoved":  true,
+    "Checks":  [
+                   {
+                       "Time":  "2026-11-19T21:41:29.0667686+05:30",
+                       "InstallDirectoryExists":  false,
+                       "Shortcuts":  [
+                                         {
+                                             "Path":  "C:\\Users\\abhin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\NetPulse\\NetPulse.lnk",
+                                             "Exists":  false
+                                         },
+                                         {
+                                             "Path":  "C:\\Users\\abhin\\OneDrive\\Desktop\\NetPulse.lnk",
+                                             "Exists":  false
+                                         }
+                                     ]
+                   },
+                   {
+                       "Time":  "2026-11-19T21:41:31.0982936+05:30",
+                       "InstallDirectoryExists":  false,
+                       "Shortcuts":  [
+                                         {
+                                             "Path":  "C:\\Users\\abhin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\NetPulse\\NetPulse.lnk",
+                                             "Exists":  false
+                                         },
+                                         {
+                                             "Path":  "C:\\Users\\abhin\\OneDrive\\Desktop\\NetPulse.lnk",
+                                             "Exists":  false
+                                         }
+                                     ]
+                   },
+                   {
+                       "Time":  "2026-11-19T21:41:34.1288957+05:30",
+                       "InstallDirectoryExists":  false,
+                       "Shortcuts":  [
+                                         {
+                                             "Path":  "C:\\Users\\abhin\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\NetPulse\\NetPulse.lnk",
+                                             "Exists":  false
+                                         },
+                                         {
+                                             "Path":  "C:\\Users\\abhin\\OneDrive\\Desktop\\NetPulse.lnk",
+                                             "Exists":  false
+                                         }
+                                     ]
+                   }
+               ],
+    "InitialCheckCorrection":  "The initial verification wrapped the JSON array as a single pipeline item; its false shortcut-removal result was a verifier error. Explicit per-path checks confirmed both shortcuts were absent."
+}

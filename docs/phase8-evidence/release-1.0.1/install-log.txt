@@ -1,0 +1,17 @@
+﻿EXCERPT. Full log: latest-msi-install.log
+MSI (s) (8C:30) [21:37:45:828]: Command Line: UPGRADINGPRODUCTCODE={E0F509EB-2E97-38F0-B8C1-4716DCF7FB5E} CLIENTPROCESSID=12192 CLIENTUILEVEL=3 REMOVE=ALL 
+MSI (s) (8C:30) [21:37:45:829]: PROPERTY CHANGE: Adding UPGRADINGPRODUCTCODE property. Its value is '{E0F509EB-2E97-38F0-B8C1-4716DCF7FB5E}'.
+MSI (s) (8C:30) [21:37:46:488]: Executing op: ShortcutRemove(Name=NetPulse)
+MSI (s) (8C:30) [21:37:46:708]: Executing op: ShortcutRemove(Name=NetPulse)
+Property(N): ProductVersion = 1.0.0
+Property(N): UPGRADINGPRODUCTCODE = {E0F509EB-2E97-38F0-B8C1-4716DCF7FB5E}
+MSI (s) (8C:5C) [21:37:53:392]: Executing op: ProductRegister(UpgradeCode={3D17D0BF-80B7-4A9D-B49D-609F216B8E43},VersionString=1.0.1,,,InstallLocation=C:\Users\abhin\AppData\Local\NetPulse\,InstallSource=C:\Users\abhin\projects\NetPulse\target\release\,Publisher=NetPulse College Project,,,,NoModify=1,,,Comments=Live network traffic monitor and Ookla CLI dashboard,Contact=NetPulse College Project,,Size=70341,,EstimatedSize=70997,,,,)
+Property(S): ProductVersion = 1.0.1
+MSI (s) (8C:5C) [21:37:53:514]: Product: NetPulse -- Installation completed successfully.
+MSI (s) (8C:5C) [21:37:53:515]: Windows Installer installed the product. Product Name: NetPulse. Product Version: 1.0.1. Product Language: 1033. Manufacturer: NetPulse College Project. Installation success or error status: 0.
+MSI (s) (8C:5C) [21:37:53:525]: MainEngineThread is returning 0
+MSI (c) (A0:74) [21:37:53:537]: MainEngineThread is returning 0
+MSI (c) (A0:74) [21:37:53:535]: Decrementing counter to disable shutdown. If counter >= 0, shutdown will be denied.  Counter after decrement: -1
+MSI (c) (A0:74) [21:37:53:537]: MainEngineThread is returning 0
+=== Verbose logging stopped: 19-11-2026  21:37:53 ===
+

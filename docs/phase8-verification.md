@@ -1,5 +1,9 @@
 # Phase 8 — Windows MSI packaging with installed WiX
 
+**Latest rebuild:** [NetPulse 1.0.1 verification](release-1.0.1-verification.md)
+records the MSI containing the dashboard layout fix, 227 passing tests and current
+installation results. The original 1.0.0 packaging record follows below.
+
 Verification date: **19 November 2026**. An actual MSI was built with JDK jpackage
 and the machine's installed WiX toolset, installed successfully, and uninstalled
 successfully. **Native application/shortcut launch is blocked by this host's

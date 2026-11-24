@@ -42,6 +42,7 @@ Screenshots at 100% scale:
 - [Dashboard bottom](ui-layout-evidence/dashboard-bottom-100.png)
 - [Minimum window](ui-layout-evidence/minimum-window-100.png)
 
-The source application and Maven JAR contain the fix. Existing MSI, application
-image and portable ZIP artifacts have not been rebuilt for this UI correction.
-Restart through `.\scripts\start-netpulse.ps1` to use the updated dashboard.
+The source application and Maven JAR contain the fix. The subsequent
+[1.0.1 MSI rebuild](release-1.0.1-verification.md) also includes it; the original
+1.0.0 portable ZIP remains unchanged. Restart through
+`.\scripts\start-netpulse.ps1` to use the updated source dashboard.
